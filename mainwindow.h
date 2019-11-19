@@ -48,6 +48,8 @@ private slots:
 
     void on_valueTextEdit_textChanged();
 
+    void on_optionTypeComboBox_currentIndexChanged(int index);
+
 private:
     Ui::MainWindow *ui;
     Logger logger;
@@ -57,5 +59,6 @@ private:
     void openProjDir(const std::string&);
     inline void updateCurItem();
     void onTextChanged(const QPlainTextEdit*, std::string&);
+    void updateInfo();
 };
 #endif // MAINWINDOW_H

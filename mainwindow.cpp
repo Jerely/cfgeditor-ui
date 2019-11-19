@@ -8,6 +8,8 @@
 using namespace std;
 namespace fs = experimental::filesystem;
 
+const int MAX_STR_LEN = 30000;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -27,58 +29,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_optionsListWidget_currentRowChanged(int currentRow)
 {
-    if(currentRow < 0)
-    {
+    if(currentRow < 0) {
         return;
     }
-    Option& option = currentOption();
-    ui->optionTypeComboBox->setCurrentIndex(option.type);
-    ui->nameLineEdit->setText(option.name.c_str());
-    ui->commentTextBox->blockSignals(true);
-    ui->commentTextBox->setPlainText(option.comment.c_str());
-    ui->commentTextBox->blockSignals(false);
-    switch(option.type)
-    {
-    case BOOL:
-        ui->valueStackedWidget->setCurrentIndex(OptionType::BOOL);
-        get<bool>(option.value) ? ui->valueCheckBox->setCheckState(Qt::Checked) :
-                                  ui->valueCheckBox->setCheckState(Qt::Unchecked);
-        break;
-    case INT:
-        ui->valueStackedWidget->setCurrentIndex(OptionType::INT);
-        ui->valueSpinBox->setValue(get<int64_t>(option.value));
-        try {
-            ui->minValueSpinBox->setValue(get<int64_t>(option.min));
-        } catch (bad_variant_access&) {
-            ui->minValueSpinBox->setValue(numeric_limits<int64_t>::min());
-        }
-        try {
-            ui->maxValueSpinBox->setValue(get<int64_t>(option.max));
-        } catch (bad_variant_access&) {
-            ui->maxValueSpinBox->setValue(numeric_limits<int64_t>::max());
-        }
-        break;
-    case DOUBLE:
-        ui->valueStackedWidget->setCurrentIndex(OptionType::DOUBLE);
-        ui->doubleSpinBox->setValue(get<double>(option.value));
-        try {
-            ui->minDoubleSpinBox->setValue(get<double>(option.min));
-        } catch (bad_variant_access&) {
-            ui->minDoubleSpinBox->setValue(numeric_limits<double>::lowest());
-        }
-        try {
-            ui->maxDoubleSpinBox->setValue(get<double>(option.max));
-        } catch (bad_variant_access&) {
-            ui->maxDoubleSpinBox->setValue(numeric_limits<double>::max());
-        }
-        break;
-    case STRING:
-        ui->valueStackedWidget->setCurrentIndex(OptionType::STRING);
-        ui->valueTextEdit->blockSignals(true);
-        ui->valueTextEdit->setPlainText(get<string>(option.value).c_str());
-        ui->valueTextEdit->blockSignals(false);
-        break;
-    }
+    updateInfo();
 }
 
 void MainWindow::on_nameLineEdit_editingFinished()
@@ -101,10 +55,6 @@ void MainWindow::on_nameLineEdit_editingFinished()
 
 inline void MainWindow::customSetup()
 {
-    ui->optionTypeComboBox->insertItem(OptionType::BOOL, "bool");
-    ui->optionTypeComboBox->insertItem(OptionType::STRING, "string");
-    ui->optionTypeComboBox->insertItem(OptionType::INT, "int");
-    ui->optionTypeComboBox->insertItem(OptionType::DOUBLE, "double");
     const int64_t int64min = numeric_limits<int64_t>::min();
     const int64_t int64max = numeric_limits<int64_t>::max();
     ui->valueSpinBox->setMinimum(int64min);
@@ -142,12 +92,11 @@ void MainWindow::openProjDir(const string &projDir)
 inline void MainWindow::updateCurItem()
 {
     ui->optionsListWidget->currentItem()->setText(currentOption().toString().c_str());
-    ui->optionsListWidget->currentItem()->setWhatsThis(currentOption().comment.c_str());
 }
 
 void MainWindow::onTextChanged(const QPlainTextEdit* plainTextEdit, string& toChange)
 {
-    while(plainTextEdit->toPlainText().length() > 30) {
+    while(plainTextEdit->toPlainText().length() > MAX_STR_LEN) {
         plainTextEdit->textCursor().deletePreviousChar();
     }
     toChange = plainTextEdit->toPlainText().toUtf8().constData();
@@ -155,6 +104,61 @@ void MainWindow::onTextChanged(const QPlainTextEdit* plainTextEdit, string& toCh
         if(ch == '\n' || ch == '\r') {
             ch = ' ';
         }
+    }
+}
+
+void MainWindow::updateInfo()
+{
+    ui->optionTypeComboBox->setCurrentIndex(currentOption().type);
+    ui->nameLineEdit->setText(currentOption().name.c_str());
+    ui->commentTextBox->blockSignals(true);
+    ui->commentTextBox->setPlainText(currentOption().comment.c_str());
+    ui->commentTextBox->blockSignals(false);
+    switch(currentOption().type)
+    {
+    case BOOL:
+        ui->valueStackedWidget->setCurrentIndex(OptionType::BOOL);
+        get<bool>(currentOption().value) ? ui->valueCheckBox->setCheckState(Qt::Checked) :
+                                  ui->valueCheckBox->setCheckState(Qt::Unchecked);
+        break;
+    case INT:
+        ui->valueStackedWidget->setCurrentIndex(OptionType::INT);
+        ui->valueSpinBox->setValue(get<int64_t>(currentOption().value));
+        if(holds_alternative<int64_t>(currentOption().min)) {
+            ui->minValueSpinBox->setValue(get<int64_t>(currentOption().min));
+        }
+        else {
+            ui->minValueSpinBox->setValue(numeric_limits<int64_t>::min());
+        }
+        if(holds_alternative<int64_t>(currentOption().max)) {
+            ui->maxValueSpinBox->setValue(get<int64_t>(currentOption().max));
+        }
+        else {
+            ui->maxValueSpinBox->setValue(numeric_limits<int64_t>::max());
+        }
+        break;
+    case DOUBLE:
+        ui->valueStackedWidget->setCurrentIndex(OptionType::DOUBLE);
+        ui->doubleSpinBox->setValue(get<double>(currentOption().value));
+        if(holds_alternative<double>(currentOption().min)) {
+            ui->minDoubleSpinBox->setValue(get<double>(currentOption().min));
+        }
+        else {
+            ui->minDoubleSpinBox->setValue(numeric_limits<double>::lowest());
+        }
+        if(holds_alternative<double>(currentOption().max)) {
+            ui->maxDoubleSpinBox->setValue(get<double>(currentOption().max));
+        }
+        else {
+            ui->maxDoubleSpinBox->setValue(numeric_limits<double>::max());
+        }
+        break;
+    case STRING:
+        ui->valueStackedWidget->setCurrentIndex(OptionType::STRING);
+        ui->valueTextEdit->blockSignals(true);
+        ui->valueTextEdit->setPlainText(get<string>(currentOption().value).c_str());
+        ui->valueTextEdit->blockSignals(false);
+        break;
     }
 }
 
@@ -208,22 +212,18 @@ void MainWindow::on_valueSpinBox_editingFinished()
         return;
     }
     int64_t newValue = ui->valueSpinBox->value();
-    try {
-        if(newValue < get<int64_t>(currentOption().min))
-        {
-            ui->statusbar->showMessage("Значение типа int меньше указанного мин. значения.");
-            ui->valueSpinBox->setValue(get<int64_t>(currentOption().value));
-            return;
-        }
-    } catch (bad_variant_access&) {}
-    try {
-        if(newValue > get<int64_t>(currentOption().max))
-        {
-            ui->statusbar->showMessage("Значение типа int превышает указанное макс. значение.");
-            ui->valueSpinBox->setValue(get<int64_t>(currentOption().value));
-            return;
-        }
-    } catch (bad_variant_access&) {}
+    if(holds_alternative<int64_t>(currentOption().min) && newValue < get<int64_t>(currentOption().min))
+    {
+        ui->statusbar->showMessage("Значение типа int меньше указанного мин. значения.");
+        ui->valueSpinBox->setValue(get<int64_t>(currentOption().value));
+        return;
+    }
+    if(holds_alternative<int64_t>(currentOption().max) && newValue > get<int64_t>(currentOption().max))
+    {
+        ui->statusbar->showMessage("Значение типа int превышает указанное макс. значение.");
+        ui->valueSpinBox->setValue(get<int64_t>(currentOption().value));
+        return;
+    }
     currentOption().value = newValue;
     updateCurItem();
 }
@@ -239,13 +239,12 @@ void MainWindow::on_minValueSpinBox_editingFinished()
     if(newMin > get<int64_t>(currentOption().value))
     {
         ui->statusbar->showMessage("Мин. значение не может превышать значения опции.");
-        int64_t min;
-        try {
-            min = get<int64_t>(currentOption().min);
-        } catch (bad_variant_access&) {
-            min = numeric_limits<int64_t>::min();
+        if(holds_alternative<int64_t>(currentOption().min)) {
+            ui->minValueSpinBox->setValue(get<int64_t>(currentOption().min));
         }
-        ui->minValueSpinBox->setValue(min);
+        else {
+            ui->minValueSpinBox->setValue(numeric_limits<int64_t>::min());
+        }
         return;
     }
     currentOption().min = newMin;
@@ -262,13 +261,12 @@ void MainWindow::on_maxValueSpinBox_editingFinished()
     if(newMax < get<int64_t>(currentOption().value))
     {
         ui->statusbar->showMessage("Макс. значение не может быть меньше значения опции.");
-        int64_t max;
-        try {
-            max = get<int64_t>(currentOption().max);
-        } catch (bad_variant_access&) {
-            max = numeric_limits<int64_t>::max();
+        if(holds_alternative<int64_t>(currentOption().max)) {
+            ui->maxValueSpinBox->setValue(get<int64_t>(currentOption().max));
         }
-        ui->maxValueSpinBox->setValue(max);
+        else {
+           ui->maxValueSpinBox->setValue(numeric_limits<int64_t>::max());
+        }
         return;
     }
     currentOption().max = newMax;
@@ -282,22 +280,18 @@ void MainWindow::on_doubleSpinBox_editingFinished()
         return;
     }
     double newValue = ui->doubleSpinBox->value();
-    try {
-        if(newValue < get<double>(currentOption().min))
-        {
-            ui->statusbar->showMessage("Значение типа double меньше указанного мин. значения.");
-            ui->doubleSpinBox->setValue(get<double>(currentOption().value));
-            return;
-        }
-    } catch (bad_variant_access&) {}
-    try {
-        if(newValue > get<double>(currentOption().max))
-        {
-            ui->statusbar->showMessage("Значение типа double превышает указанное макс. значение.");
-            ui->doubleSpinBox->setValue(get<double>(currentOption().value));
-            return;
-        }
-    } catch (bad_optional_access&) {}
+    if(holds_alternative<double>(currentOption().min) &&  newValue < get<double>(currentOption().min))
+    {
+        ui->statusbar->showMessage("Значение типа double меньше указанного мин. значения.");
+        ui->doubleSpinBox->setValue(get<double>(currentOption().value));
+        return;
+    }
+    if(holds_alternative<double>(currentOption().max) && newValue > get<double>(currentOption().max))
+    {
+        ui->statusbar->showMessage("Значение типа double превышает указанное макс. значение.");
+        ui->doubleSpinBox->setValue(get<double>(currentOption().value));
+        return;
+    }
     currentOption().value = newValue;
     updateCurItem();
 }
@@ -313,13 +307,12 @@ void MainWindow::on_minDoubleSpinBox_editingFinished()
     if(newMin > get<double>(currentOption().value))
     {
         ui->statusbar->showMessage("Мин. значение не может превышать значения опции.");
-        double min;
-        try {
-            min = get<double>(currentOption().min);
-        } catch (bad_variant_access&) {
-            min = numeric_limits<double>::lowest();
+        if(holds_alternative<double>(currentOption().min)) {
+            ui->minDoubleSpinBox->setValue(get<double>(currentOption().min));
         }
-        ui->minDoubleSpinBox->setValue(min);
+        else {
+           ui->minDoubleSpinBox->setValue(numeric_limits<double>::lowest());
+        }
         return;
     }
     currentOption().min = newMin;
@@ -336,33 +329,16 @@ void MainWindow::on_maxDoubleSpinBox_editingFinished()
     if(newMax < get<double>(currentOption().value))
     {
         ui->statusbar->showMessage("Макс. значение не может быть меньше значения опции.");
-        double max;
-        try {
-            max = get<double>(currentOption().max);
-        } catch (bad_variant_access&) {
-            max = numeric_limits<double>::max();
+        if(holds_alternative<double>(currentOption().max)) {
+            ui->maxDoubleSpinBox->setValue(get<double>(currentOption().max));
         }
-        ui->maxDoubleSpinBox->setValue(max);
+        else {
+            ui->maxDoubleSpinBox->setValue(numeric_limits<double>::max());
+        }
         return;
     }
     currentOption().max = newMax;
 }
-
-//void MainWindow::on_valueLineEdit_editingFinished()
-//{
-//    if(ui->optionsListWidget->currentRow() < 0)
-//    {
-//        return;
-//    }
-//    if(ui->valueLineEdit->text().length() > 30000)
-//    {
-//        ui->statusbar->showMessage("Длина значения типа string превышает 30000 символов.");
-//        ui->valueLineEdit->setText(get<string>(currentOption().value).c_str());
-//        return;
-//    }
-//    currentOption().value = string(ui->valueLineEdit->text().toUtf8().constData());
-//    updateCurItem();
-//}
 
 void MainWindow::on_commentTextBox_textChanged()
 {
@@ -374,5 +350,92 @@ void MainWindow::on_valueTextEdit_textChanged()
     string strValue;
     onTextChanged(ui->valueTextEdit, strValue);
     currentOption().value = strValue;
+    updateCurItem();
+}
+
+void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
+{
+    if(index == OptionType::BOOL) {
+        switch(currentOption().type) {
+        case BOOL:
+            break;
+        case INT:
+            currentOption().value = static_cast<bool>(get<int64_t>(currentOption().value));
+            currentOption().min = monostate();
+            currentOption().max = monostate();
+            break;
+        case STRING:
+            currentOption().value = false;
+            break;
+        case DOUBLE:
+            currentOption().value = static_cast<bool>(get<double>(currentOption().value));
+            currentOption().min = monostate();
+            currentOption().max = monostate();
+            break;
+        }
+    }
+    else if(index == OptionType::INT) {
+        switch(currentOption().type) {
+        case BOOL:
+            currentOption().value = static_cast<int64_t>(get<bool>(currentOption().value));
+            break;
+        case INT:
+            break;
+        case STRING:
+            currentOption().value = 0ll;
+            break;
+        case DOUBLE:
+            currentOption().value = static_cast<int64_t>(get<double>(currentOption().value));
+            if(holds_alternative<double>(currentOption().min)) {
+                currentOption().min = static_cast<int64_t>(get<double>(currentOption().min));
+            }
+            if(holds_alternative<double>(currentOption().max)) {
+                currentOption().max = static_cast<int64_t>(get<double>(currentOption().max));
+            }
+            break;
+        }
+    }
+    else if(index == OptionType::STRING) {
+        switch(currentOption().type) {
+        case BOOL:
+            currentOption().value = get<bool>(currentOption().value) ? string("true") : string("false");
+            break;
+        case INT:
+            currentOption().value = to_string(get<int64_t>(currentOption().value));
+            currentOption().min = monostate();
+            currentOption().max = monostate();
+            break;
+        case STRING:
+            break;
+        case DOUBLE:
+            currentOption().value = to_string(get<double>(currentOption().value));
+            currentOption().min = monostate();
+            currentOption().max = monostate();
+            break;
+        }
+    }
+    else if(index == OptionType::DOUBLE) {
+        switch(currentOption().type) {
+        case BOOL:
+            currentOption().value = get<bool>(currentOption().value);
+            break;
+        case INT:
+            currentOption().value = get<int64_t>(currentOption().value);
+            if(holds_alternative<int64_t>(currentOption().min)) {
+                currentOption().min = static_cast<double>(get<int64_t>(currentOption().min));
+            }
+            if(holds_alternative<int64_t>(currentOption().max)) {
+                currentOption().max = static_cast<double>(get<int64_t>(currentOption().max));
+            }
+            break;
+        case STRING:
+            currentOption().value = .0;
+            break;
+        case DOUBLE:
+            break;
+        }
+    }
+    currentOption().type = static_cast<OptionType>(index);
+    updateInfo();
     updateCurItem();
 }

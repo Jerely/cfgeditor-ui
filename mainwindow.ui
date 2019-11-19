@@ -84,7 +84,7 @@
      <string>Открыть</string>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>400</x>
@@ -124,6 +124,26 @@
          <property name="editable">
           <bool>false</bool>
          </property>
+         <item>
+          <property name="text">
+           <string>bool</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>string</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>int</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>double</string>
+          </property>
+         </item>
         </widget>
        </item>
        <item row="1" column="0">
@@ -213,7 +233,7 @@
         </widget>
        </widget>
        <widget class="QWidget" name="page_7">
-        <widget class="QWidget" name="">
+        <widget class="QWidget" name="layoutWidget">
          <property name="geometry">
           <rect>
            <x>0</x>
@@ -294,7 +314,7 @@
         </widget>
        </widget>
        <widget class="QWidget" name="page_8">
-        <widget class="QWidget" name="">
+        <widget class="QWidget" name="layoutWidget">
          <property name="geometry">
           <rect>
            <x>0</x>

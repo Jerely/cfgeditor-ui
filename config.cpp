@@ -204,16 +204,12 @@ void Config::parseNameAndValue(const string& rawNameAndValue,
         } catch (out_of_range&) {
             throw BadOptionError("указанное значение не входит в допустимый диапазон");
         }
-        try {
-            if(get<int64_t>(value) < get<int64_t>(min)) {
-                throw BadOptionError("значение не соответствует указанному диапазону");
-            }
-        } catch (bad_variant_access&){}
-        try {
-            if(get<int64_t>(value) > get<int64_t>(max)) {
-                throw BadOptionError("значение не соответствует указанному диапазону");
-            }
-        } catch (bad_variant_access&){}
+        if(holds_alternative<int64_t>(min) && get<int64_t>(value) < get<int64_t>(min)) {
+            throw BadOptionError("значение не соответствует указанному диапазону");
+        }
+        if(holds_alternative<int64_t>(max) && get<int64_t>(value) > get<int64_t>(max)) {
+            throw BadOptionError("значение не соответствует указанному диапазону");
+        }
         break;
     case DOUBLE:
         if(!regex_match(rawValue, Regex::doubleValue))
@@ -221,16 +217,12 @@ void Config::parseNameAndValue(const string& rawNameAndValue,
             throw BadOptionError("значение опции не соответствует типу double");
         }
         value = stod(rawValue);
-        try {
-            if(get<double>(value) < get<double>(min)) {
-                throw BadOptionError("значение не соответствует указанному диапазону");
-            }
-        } catch (bad_variant_access&){}
-        try {
-            if(get<double>(value) > get<double>(max)) {
-                throw BadOptionError("значение не соответствует указанному диапазону");
-            }
-        } catch (bad_variant_access&){}
+        if(holds_alternative<double>(min) && get<double>(value) < get<double>(min)) {
+            throw BadOptionError("значение не соответствует указанному диапазону");
+        }
+        if(holds_alternative<double>(max) && get<double>(value) > get<double>(max)) {
+            throw BadOptionError("значение не соответствует указанному диапазону");
+        }
         break;
     case BOOL:
         if(!regex_match(rawValue, Regex::boolValue))
