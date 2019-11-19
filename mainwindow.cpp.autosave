@@ -8,6 +8,8 @@
 using namespace std;
 namespace fs = experimental::filesystem;
 
+const int MAX_STR_LEN = 30000;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -142,12 +144,11 @@ void MainWindow::openProjDir(const string &projDir)
 inline void MainWindow::updateCurItem()
 {
     ui->optionsListWidget->currentItem()->setText(currentOption().toString().c_str());
-    ui->optionsListWidget->currentItem()->setWhatsThis(currentOption().comment.c_str());
 }
 
 void MainWindow::onTextChanged(const QPlainTextEdit* plainTextEdit, string& toChange)
 {
-    while(plainTextEdit->toPlainText().length() > 30) {
+    while(plainTextEdit->toPlainText().length() > MAX_STR_LEN) {
         plainTextEdit->textCursor().deletePreviousChar();
     }
     toChange = plainTextEdit->toPlainText().toUtf8().constData();
@@ -297,7 +298,7 @@ void MainWindow::on_doubleSpinBox_editingFinished()
             ui->doubleSpinBox->setValue(get<double>(currentOption().value));
             return;
         }
-    } catch (bad_optional_access&) {}
+    } catch (bad_variant_access&) {}
     currentOption().value = newValue;
     updateCurItem();
 }
@@ -348,22 +349,6 @@ void MainWindow::on_maxDoubleSpinBox_editingFinished()
     currentOption().max = newMax;
 }
 
-//void MainWindow::on_valueLineEdit_editingFinished()
-//{
-//    if(ui->optionsListWidget->currentRow() < 0)
-//    {
-//        return;
-//    }
-//    if(ui->valueLineEdit->text().length() > 30000)
-//    {
-//        ui->statusbar->showMessage("Длина значения типа string превышает 30000 символов.");
-//        ui->valueLineEdit->setText(get<string>(currentOption().value).c_str());
-//        return;
-//    }
-//    currentOption().value = string(ui->valueLineEdit->text().toUtf8().constData());
-//    updateCurItem();
-//}
-
 void MainWindow::on_commentTextBox_textChanged()
 {
     onTextChanged(ui->commentTextBox, currentOption().comment);
@@ -375,4 +360,88 @@ void MainWindow::on_valueTextEdit_textChanged()
     onTextChanged(ui->valueTextEdit, strValue);
     currentOption().value = strValue;
     updateCurItem();
+}
+
+void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
+{
+    if(index == OptionType::BOOL) {
+        switch(currentOption().type) {
+        case BOOL:
+            break;
+        case INT:
+            currentOption().value = static_cast<bool>(get<int64_t>(currentOption().value));
+            currentOption().min = monostate();
+            currentOption().max = monostate();
+            break;
+        case STRING:
+            currentOption().value = false;
+            break;
+        case DOUBLE:
+            currentOption().value = static_cast<bool>(get<double>(currentOption().value));
+            currentOption().min = monostate();
+            currentOption().max = monostate();
+            break;
+        }
+    }
+    else if(index == OptionType::INT) {
+        switch(currentOption().type) {
+        case BOOL:
+            currentOption().value = static_cast<int64_t>(get<bool>(currentOption().value));
+            break;
+        case INT:
+            break;
+        case STRING:
+            currentOption().value = 0ll;
+            break;
+        case DOUBLE:
+            currentOption().value = static_cast<int64_t>(get<double>(currentOption().value));
+            if(holds_alternative<double>(currentOption().min)) {
+                currentOption().min = static_cast<int64_t>(get<double>(currentOption().min));
+            }
+            if(holds_alternative<double>(currentOption().max)) {
+                currentOption().max = static_cast<int64_t>(get<double>(currentOption().max));
+            }
+            break;
+        }
+    }
+    else if(index == OptionType::STRING) {
+        switch(currentOption().type) {
+        case BOOL:
+            currentOption().value = get<bool>(currentOption().value) ? "true" : "false";
+            break;
+        case INT:
+            currentOption().value = to_string(get<int64_t>(currentOption().value));
+            currentOption().min = monostate();
+            currentOption().max = monostate();
+            break;
+        case STRING:
+            break;
+        case DOUBLE:
+            currentOption().value = to_string(get<double>(currentOption().value));
+            currentOption().min = monostate();
+            currentOption().max = monostate();
+            break;
+        }
+    }
+    else if(index == OptionType::DOUBLE) {
+        switch(currentOption().type) {
+        case BOOL:
+            currentOption().value = get<bool>(currentOption().value);
+            break;
+        case INT:
+            currentOption().value = get<int64_t>(currentOption().value);
+            if(holds_alternative<int64_t>(currentOption().min)) {
+                currentOption().min = static_cast<double>(get<int64_t>(currentOption().min));
+            }
+            if(holds_alternative<int64_t>(currentOption().max)) {
+                currentOption().max = static_cast<double>(get<int64_t>(currentOption().max));
+            }
+            break;
+        case STRING:
+            currentOption().value = .0;
+            break;
+        case DOUBLE:
+            break;
+        }
+    }
 }
