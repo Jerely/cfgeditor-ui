@@ -22,8 +22,7 @@ namespace Regex
 
 class Config
 {
-    std::string filename;
-    LineCounter lineCounter;
+    LineCounter* lineCounter;
     Logger& logger;
     void parseModuleName();
     void parseOptions();
@@ -34,6 +33,7 @@ class Config
     void parseNameAndValue(const std::string&, OptionType, const OptionMinMax&, const OptionMinMax&, std::string&, OptionValue&);
     inline void prepareMessage(const std::string&);
 public:
+    std::string filename;
     std::string moduleName;
     std::vector<std::unique_ptr<Option>> options;
     Config(std::string, Logger&);

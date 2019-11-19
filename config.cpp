@@ -6,28 +6,30 @@
 using namespace std;
 
 Config::Config(string filename, Logger& logger)
-    :
-      filename(filename),
-      lineCounter(filename),
-      logger(logger)
+    : filename(filename)
+      , lineCounter(nullptr)
+      , logger(logger)
 {
 }
 
 void Config::parseConfig()
 {
+    lineCounter = new LineCounter(filename);
     try {
         parseModuleName();
         parseOptions();
     } catch (BadConfigError& e) {
         prepareMessage(e.what());
     }
+    delete lineCounter;
+    lineCounter = nullptr;
 }
 
 void Config::parseModuleName()
 {
     string rawModuleName;
     smatch match;
-    if(!lineCounter.nextLine(rawModuleName)
+    if(!lineCounter->nextLine(rawModuleName)
             || !regex_search(rawModuleName, match, Regex::moduleName))
     {
         throw BadConfigError("ожидалось имя модуля");
@@ -42,7 +44,7 @@ void Config::parseModuleName()
 void Config::parseOptions()
 {
     string rawComment;
-    while(lineCounter.nextLine(rawComment))
+    while(lineCounter->nextLine(rawComment))
     {
         if(rawComment.length() < 3 || rawComment[0] != '#' || rawComment[1] != ' ')
         {
@@ -63,14 +65,14 @@ void Config::parseOption(const string& rawComment, Option& option)
     parseComment(rawComment, option.comment);
     option.type = parseType();
     string rawString;
-    if(!lineCounter.nextLine(rawString))
+    if(!lineCounter->nextLine(rawString))
     {
         throw BadOptionError("ожидалось имя опции");
     }
     if(regex_match(rawString, Regex::boundaries))
     {
         parseMinAndMax(rawString, option.type, option.min, option.max);
-        if(!lineCounter.nextLine(rawString))
+        if(!lineCounter->nextLine(rawString))
         {
             throw BadOptionError("ожидалось имя опции");
         }
@@ -96,7 +98,7 @@ OptionType Config::parseType()
 {
     string rawType;
     smatch match;
-    if(!lineCounter.nextLine(rawType)
+    if(!lineCounter->nextLine(rawType)
             || !regex_search(rawType, match, Regex::type))
     {
         throw BadOptionError("ожидался тип");
@@ -246,7 +248,7 @@ void Config::prepareMessage(const string & reason)
     logger.log(string("Синтаксическая ошибка, файл ") +
                filename +
                ", строка " +
-               to_string(lineCounter.lineNo) +
+               to_string(lineCounter->lineNo) +
                ": " +
                reason +
                ".\n");

@@ -50,12 +50,15 @@ private slots:
 
     void on_optionTypeComboBox_currentIndexChanged(int index);
 
+    void on_saveButton_clicked();
+
 private:
     Ui::MainWindow *ui;
     Logger logger;
     std::vector<std::unique_ptr<Config>> configs;
     inline void customSetup();
     inline Option& currentOption();
+    inline Config& currentConfig();
     void openProjDir(const std::string&);
     inline void updateCurItem();
     void onTextChanged(const QPlainTextEdit*, std::string&);

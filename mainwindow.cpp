@@ -65,9 +65,14 @@ inline void MainWindow::customSetup()
     ui->maxValueSpinBox->setMaximum(int64max);
 }
 
-Option &MainWindow::currentOption()
+inline Option &MainWindow::currentOption()
 {
     return *configs[static_cast<uint64_t>(ui->tabsWidget->currentIndex())]->options[static_cast<uint64_t>(ui->optionsListWidget->currentRow())];
+}
+
+inline Config &MainWindow::currentConfig()
+{
+    return *configs[static_cast<uint64_t>(ui->tabsWidget->currentIndex())];
 }
 
 void MainWindow::openProjDir(const string &projDir)
@@ -438,4 +443,12 @@ void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
     currentOption().type = static_cast<OptionType>(index);
     updateInfo();
     updateCurItem();
+}
+
+void MainWindow::on_saveButton_clicked()
+{
+
+    for(const auto& option : currentConfig().options) {
+        ofstream fout(currentConfig().filename);
+    }
 }
