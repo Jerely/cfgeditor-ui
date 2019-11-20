@@ -447,8 +447,46 @@ void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
 
 void MainWindow::on_saveButton_clicked()
 {
-
+    ofstream fout(currentConfig().filename);
+    fout << "### " << currentConfig().moduleName << endl;
     for(const auto& option : currentConfig().options) {
-        ofstream fout(currentConfig().filename);
+        fout << "# " << option->comment << endl;
+        fout << "##--" << option->typeToString() << endl;
+        bool thereIsMinOrMax = !holds_alternative<monostate>(option->min) || !holds_alternative<monostate>(option->max);
+        if(thereIsMinOrMax) {
+            fout << "##";
+        }
+        if(!holds_alternative<monostate>(option->min)) {
+            switch(option->type) {
+            case INT:
+                fout << get<int64_t>(option->min);
+                break;
+            case DOUBLE:
+                fout << get<double>(option->min);
+                break;
+            default:
+                break;
+            }
+        }
+        if(thereIsMinOrMax) {
+            fout << ",";
+        }
+        if(!holds_alternative<monostate>(option->max)) {
+            switch(option->type) {
+            case INT:
+                fout << get<int64_t>(option->max);
+                break;
+            case DOUBLE:
+                fout << get<double>(option->max);
+                break;
+            default:
+                break;
+            }
+        }
+        if(thereIsMinOrMax) {
+            fout << endl;
+        }
+        fout << option->name << " = " << option->valueToString() << endl;
     }
+    fout.close();
 }

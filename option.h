@@ -16,9 +16,6 @@ typedef std::map<std::string, OptionType> StringToOptionType;
 
 class Option
 {
-private:
-    std::string valueToString();
-    std::string typeToString();
 public:
     static StringToOptionType stringToOptionType;
     std::string comment;
@@ -27,6 +24,8 @@ public:
     std::string name;
     OptionValue value;
     std::string toString();
+    std::string valueToString();
+    std::string typeToString();
     Option();
 };
 
