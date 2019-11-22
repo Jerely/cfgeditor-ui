@@ -30,7 +30,7 @@ private slots:
 
     void on_openPushButton_clicked();
 
-    void on_valueSpinBox_editingFinished();
+    void onValueSpinBoxEditingFinished();
 
     void on_minValueSpinBox_editingFinished();
 
@@ -61,6 +61,10 @@ private slots:
     void on_helpButton_clicked();
 
     void on_saveAllButton_clicked();
+
+
+    void onSpinBoxEditingFinished();
+    void onPushButtonClicked();
 
 private:
     Ui::MainWindow *ui;

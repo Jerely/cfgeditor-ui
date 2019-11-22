@@ -12,7 +12,7 @@ namespace fs = experimental::filesystem;
 
 
 #define BLOCK_UNWANTED_SIGNALS() \
-    const QSignalBlocker blocker1(ui->valueSpinBox); \
+    /*const QSignalBlocker blocker1(ui->valueSpinBox);*/ \
     const QSignalBlocker blocker2(ui->valueCheckBox); \
     const QSignalBlocker blocker3(ui->valueTextEdit); \
     const QSignalBlocker blocker4(ui->minValueSpinBox); \
@@ -76,6 +76,9 @@ inline void MainWindow::customSetup()
     ui->minValueSpinBox->setMaximum(int64max);
     ui->maxValueSpinBox->setMinimum(int64min);
     ui->maxValueSpinBox->setMaximum(int64max);
+    connect(ui->valueSpinBox, SIGNAL(editingFinished()), this, SLOT(onValueSpinBoxEditingFinished()));
+    connect(ui->spinBox, SIGNAL(editingFinished()), this, SLOT(onSpinBoxEditingFinished()));
+    connect(ui->pushButton, SIGNAL(clicked()), this, SLOT(onPushButtonClicked()));
 }
 
 inline Option &MainWindow::currentOption()
@@ -128,6 +131,7 @@ void MainWindow::onTextChanged(const QPlainTextEdit* plainTextEdit, string& toCh
 void MainWindow::updateInfo()
 {
     BLOCK_UNWANTED_SIGNALS();
+    //bool pizda = disconnect(ui->valueStackedWidget, SIGNAL(setCurrentIndex(int)), this, SLOT(on_valueSpinBox_editingFinished()));
     ui->optionTypeComboBox->setCurrentIndex(currentOption().type);
     ui->nameLineEdit->setText(currentOption().name.c_str());
     ui->commentTextBox->setPlainText(currentOption().comment.c_str());
@@ -266,7 +270,7 @@ void MainWindow::on_openPushButton_clicked()
     openProjDir(dir.toUtf8().constData());
 }
 
-void MainWindow::on_valueSpinBox_editingFinished()
+void MainWindow::onValueSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
     if(currentRow < 0)
@@ -566,4 +570,14 @@ void MainWindow::on_saveAllButton_clicked()
         saveConfig(*config);
     }
     ui->statusbar->showMessage("Все файлы сохранены.");
+}
+
+void MainWindow::onSpinBoxEditingFinished()
+{
+    return;
+}
+
+void MainWindow::onPushButtonClicked()
+{
+    ui->stackedWidget->setCurrentIndex(1);
 }
