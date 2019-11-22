@@ -6,23 +6,22 @@
 using namespace std;
 
 Config::Config(string filename, Logger& logger)
-    : filename(filename)
-      , lineCounter(nullptr)
-      , logger(logger)
+    : lineCounter(nullptr)
+    , logger(logger)
+    , filename(filename)
 {
 }
 
 void Config::parseConfig()
 {
-    lineCounter = new LineCounter(filename);
+    LineCounter _lineCounter(filename);
+    lineCounter = &_lineCounter;
     try {
         parseModuleName();
         parseOptions();
     } catch (BadConfigError& e) {
         prepareMessage(e.what());
     }
-    delete lineCounter;
-    lineCounter = nullptr;
 }
 
 void Config::parseModuleName()

@@ -17,9 +17,6 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     customSetup();
-    string projDir;
-    //configs.push_back(make_unique<Config>("tests\\newline-pos.cfg", logger));
-    //configs.push_back(make_unique<Config>("tests\\sample-options.cfg", logger));
 }
 
 MainWindow::~MainWindow()
@@ -169,14 +166,12 @@ void MainWindow::updateInfo()
 
 void MainWindow::on_tabsWidget_currentChanged(int index)
 {
-    if(index < 0)
-    {
+    if(index < 0){
         return;
     }
     ui->optionsListWidget->clear();
     Config& config = *configs[static_cast<uint64_t>(index)];
-    for(uint64_t i = 0; i < config.options.size(); ++i)
-    {
+    for(uint64_t i = 0; i < config.options.size(); ++i) {
        Option& option = *config.options[i];
         QListWidgetItem *newItem = new QListWidgetItem;
         newItem->setText(option.toString().c_str());
@@ -488,5 +483,47 @@ void MainWindow::on_saveButton_clicked()
         }
         fout << option->name << " = " << option->valueToString() << endl;
     }
+    ui->statusbar->showMessage(tr("Файл ") + currentConfig().filename.c_str() + " сохранен.");
     fout.close();
+}
+
+void MainWindow::on_addButton_clicked()
+{
+    auto option = make_unique<Option>();
+    option->type = BOOL;
+    option->name = "sampleOption";
+    option->value = true;
+    option->comment = "comment";
+    auto *newItem = new QListWidgetItem;
+    newItem->setText(option->toString().c_str());
+    const int curRow = ui->optionsListWidget->currentRow();
+    ui->optionsListWidget->insertItem(curRow+1, newItem);
+    //ui->optionsListWidget->addItem(newItem);
+    //currentConfig().options.push_back(std::move(option));
+    currentConfig().options.insert(currentConfig().options.begin()+curRow+1, std::move(option));
+    ui->optionsListWidget->setCurrentRow(curRow+1);
+}
+
+void MainWindow::on_removeButton_clicked()
+{
+    const int curRow = ui->optionsListWidget->currentRow();
+    const int rowCount = ui->optionsListWidget->count();
+    int nextRow = -1;
+    currentConfig().options.erase(currentConfig().options.begin() + curRow);
+    if(curRow == rowCount-1 && curRow != 0) {
+        nextRow = curRow-1;
+    }
+    if(curRow != rowCount-1 && curRow == 0) {
+        nextRow = 0;
+    }
+    if(curRow != rowCount-1 && curRow != 0) {
+        nextRow = curRow;
+    }
+    ui->optionsListWidget->blockSignals(true);
+    delete ui->optionsListWidget->takeItem(curRow);
+    ui->optionsListWidget->blockSignals(false);
+    if(nextRow > 0) {
+        ui->optionsListWidget->setCurrentRow(nextRow);
+        updateInfo();
+    }
 }
