@@ -2,7 +2,7 @@
 #define CONFIG_H
 #include "linecounter.h"
 #include "option.h"
-#include <vector>
+#include <deque>
 #include <memory>
 #include <regex>
 #include "logger.h"
@@ -35,7 +35,7 @@ class Config
 public:
     std::string filename;
     std::string moduleName;
-    std::vector<std::unique_ptr<Option>> options;
+    std::deque<std::unique_ptr<Option>> options;
     Config(std::string, Logger&);
     void parseConfig();
 };

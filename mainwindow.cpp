@@ -1,9 +1,11 @@
+#include <QMessageBox>
 #include <QFileDialog>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "config.h"
 #include <QPushButton>
 #include <QHBoxLayout>
+#include <iostream>
 #include <experimental/filesystem>
 using namespace std;
 namespace fs = experimental::filesystem;
@@ -111,17 +113,39 @@ void MainWindow::onTextChanged(const QPlainTextEdit* plainTextEdit, string& toCh
 
 void MainWindow::updateInfo()
 {
+    //ui->optionTypeComboBox->blockSignals(true);
     ui->optionTypeComboBox->setCurrentIndex(currentOption().type);
+    //ui->optionTypeComboBox->blockSignals(false);
     ui->nameLineEdit->setText(currentOption().name.c_str());
-    ui->commentTextBox->blockSignals(true);
+    //ui->commentTextBox->blockSignals(true);
     ui->commentTextBox->setPlainText(currentOption().comment.c_str());
-    ui->commentTextBox->blockSignals(false);
+    //ui->commentTextBox->blockSignals(false);
+    //ui->valueSpinBox->blockSignals(true);
+    //ui->valueCheckBox->blockSignals(true);
+    //ui->valueTextEdit->blockSignals(true);
+    //ui->doubleSpinBox->blockSignals(true);
+    //ui->minValueSpinBox->blockSignals(true);
+    //ui->maxValueSpinBox->blockSignals(true);
+    //ui->minDoubleSpinBox->blockSignals(true);
+    //ui->maxDoubleSpinBox->blockSignals(true);
+    const QSignalBlocker blocker1(ui->valueSpinBox);
+    const QSignalBlocker blocker2(ui->valueCheckBox);
+    const QSignalBlocker blocker3(ui->valueTextEdit);
+    const QSignalBlocker blocker4(ui->minValueSpinBox);
+    const QSignalBlocker blocker5(ui->maxValueSpinBox);
+    const QSignalBlocker blocker6(ui->minDoubleSpinBox);
+    const QSignalBlocker blocker7(ui->maxDoubleSpinBox);
+    const QSignalBlocker blocker8(ui->doubleSpinBox);
+    const QSignalBlocker blocker9(ui->optionTypeComboBox);
+    const QSignalBlocker blocker10(ui->commentTextBox);
     switch(currentOption().type)
     {
     case BOOL:
         ui->valueStackedWidget->setCurrentIndex(OptionType::BOOL);
-        get<bool>(currentOption().value) ? ui->valueCheckBox->setCheckState(Qt::Checked) :
-                                  ui->valueCheckBox->setCheckState(Qt::Unchecked);
+        if(holds_alternative<bool>(currentOption().value)) {
+            get<bool>(currentOption().value) ? ui->valueCheckBox->setCheckState(Qt::Checked) :
+                                               ui->valueCheckBox->setCheckState(Qt::Unchecked);
+        }
         break;
     case INT:
         ui->valueStackedWidget->setCurrentIndex(OptionType::INT);
@@ -162,6 +186,61 @@ void MainWindow::updateInfo()
         ui->valueTextEdit->blockSignals(false);
         break;
     }
+    //ui->valueSpinBox->blockSignals(false);
+    //ui->valueCheckBox->blockSignals(false);
+    //ui->valueTextEdit->blockSignals(false);
+    //ui->doubleSpinBox->blockSignals(false);
+    //ui->minValueSpinBox->blockSignals(false);
+    //ui->maxValueSpinBox->blockSignals(false);
+    //ui->minDoubleSpinBox->blockSignals(false);
+    //ui->maxDoubleSpinBox->blockSignals(false);
+}
+
+void MainWindow::saveConfig(const Config & config) const
+{
+    ofstream fout(config.filename);
+    fout << "### " << config.moduleName << endl;
+    for(const auto& option : config.options) {
+        fout << "# " << option->comment << endl;
+        fout << "##--" << option->typeToString() << endl;
+        bool thereIsMinOrMax = !holds_alternative<monostate>(option->min) || !holds_alternative<monostate>(option->max);
+        if(thereIsMinOrMax) {
+            fout << "##";
+        }
+        if(!holds_alternative<monostate>(option->min)) {
+            switch(option->type) {
+            case INT:
+                fout << get<int64_t>(option->min);
+                break;
+            case DOUBLE:
+                fout << get<double>(option->min);
+                break;
+            default:
+                break;
+            }
+        }
+        if(thereIsMinOrMax) {
+            fout << ",";
+        }
+        if(!holds_alternative<monostate>(option->max)) {
+            switch(option->type) {
+            case INT:
+                fout << get<int64_t>(option->max);
+                break;
+            case DOUBLE:
+                fout << get<double>(option->max);
+                break;
+            default:
+                break;
+            }
+        }
+        if(thereIsMinOrMax) {
+            fout << endl;
+        }
+        fout << option->name << " = " << option->valueToString() << endl;
+    }
+    ui->statusbar->showMessage(tr("Файл ") + config.filename.c_str() + " сохранен.");
+    fout.close();
 }
 
 void MainWindow::on_tabsWidget_currentChanged(int index)
@@ -442,49 +521,7 @@ void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
 
 void MainWindow::on_saveButton_clicked()
 {
-    ofstream fout(currentConfig().filename);
-    fout << "### " << currentConfig().moduleName << endl;
-    for(const auto& option : currentConfig().options) {
-        fout << "# " << option->comment << endl;
-        fout << "##--" << option->typeToString() << endl;
-        bool thereIsMinOrMax = !holds_alternative<monostate>(option->min) || !holds_alternative<monostate>(option->max);
-        if(thereIsMinOrMax) {
-            fout << "##";
-        }
-        if(!holds_alternative<monostate>(option->min)) {
-            switch(option->type) {
-            case INT:
-                fout << get<int64_t>(option->min);
-                break;
-            case DOUBLE:
-                fout << get<double>(option->min);
-                break;
-            default:
-                break;
-            }
-        }
-        if(thereIsMinOrMax) {
-            fout << ",";
-        }
-        if(!holds_alternative<monostate>(option->max)) {
-            switch(option->type) {
-            case INT:
-                fout << get<int64_t>(option->max);
-                break;
-            case DOUBLE:
-                fout << get<double>(option->max);
-                break;
-            default:
-                break;
-            }
-        }
-        if(thereIsMinOrMax) {
-            fout << endl;
-        }
-        fout << option->name << " = " << option->valueToString() << endl;
-    }
-    ui->statusbar->showMessage(tr("Файл ") + currentConfig().filename.c_str() + " сохранен.");
-    fout.close();
+    saveConfig(currentConfig());
 }
 
 void MainWindow::on_addButton_clicked()
@@ -526,4 +563,24 @@ void MainWindow::on_removeButton_clicked()
         ui->optionsListWidget->setCurrentRow(nextRow);
         updateInfo();
     }
+}
+
+void MainWindow::on_updateButton_clicked()
+{
+    openProjDir(ui->projDirLineEdit->text().toUtf8().constData());
+}
+
+void MainWindow::on_helpButton_clicked()
+{
+    QMessageBox mb;
+    mb.setText("Справка.");
+    mb.exec();
+}
+
+void MainWindow::on_saveAllButton_clicked()
+{
+    for(const auto& config : configs) {
+        saveConfig(*config);
+    }
+    ui->statusbar->showMessage("Все файлы сохранены.");
 }

@@ -56,6 +56,12 @@ private slots:
 
     void on_removeButton_clicked();
 
+    void on_updateButton_clicked();
+
+    void on_helpButton_clicked();
+
+    void on_saveAllButton_clicked();
+
 private:
     Ui::MainWindow *ui;
     Logger logger;
@@ -67,5 +73,6 @@ private:
     inline void updateCurItem();
     void onTextChanged(const QPlainTextEdit*, std::string&);
     void updateInfo();
+    void saveConfig(const Config&) const;
 };
 #endif // MAINWINDOW_H
