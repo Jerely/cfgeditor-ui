@@ -10,6 +10,20 @@
 using namespace std;
 namespace fs = experimental::filesystem;
 
+
+#define BLOCK_UNWANTED_SIGNALS() \
+    const QSignalBlocker blocker1(ui->valueSpinBox); \
+    const QSignalBlocker blocker2(ui->valueCheckBox); \
+    const QSignalBlocker blocker3(ui->valueTextEdit); \
+    const QSignalBlocker blocker4(ui->minValueSpinBox); \
+    const QSignalBlocker blocker5(ui->maxValueSpinBox); \
+    const QSignalBlocker blocker6(ui->minDoubleSpinBox); \
+    const QSignalBlocker blocker7(ui->maxDoubleSpinBox); \
+    const QSignalBlocker blocker8(ui->doubleSpinBox); \
+    const QSignalBlocker blocker9(ui->optionTypeComboBox); \
+    const QSignalBlocker blocker10(ui->commentTextBox)
+
+
 const int MAX_STR_LEN = 30000;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -113,39 +127,16 @@ void MainWindow::onTextChanged(const QPlainTextEdit* plainTextEdit, string& toCh
 
 void MainWindow::updateInfo()
 {
-    //ui->optionTypeComboBox->blockSignals(true);
+    BLOCK_UNWANTED_SIGNALS();
     ui->optionTypeComboBox->setCurrentIndex(currentOption().type);
-    //ui->optionTypeComboBox->blockSignals(false);
     ui->nameLineEdit->setText(currentOption().name.c_str());
-    //ui->commentTextBox->blockSignals(true);
     ui->commentTextBox->setPlainText(currentOption().comment.c_str());
-    //ui->commentTextBox->blockSignals(false);
-    //ui->valueSpinBox->blockSignals(true);
-    //ui->valueCheckBox->blockSignals(true);
-    //ui->valueTextEdit->blockSignals(true);
-    //ui->doubleSpinBox->blockSignals(true);
-    //ui->minValueSpinBox->blockSignals(true);
-    //ui->maxValueSpinBox->blockSignals(true);
-    //ui->minDoubleSpinBox->blockSignals(true);
-    //ui->maxDoubleSpinBox->blockSignals(true);
-    const QSignalBlocker blocker1(ui->valueSpinBox);
-    const QSignalBlocker blocker2(ui->valueCheckBox);
-    const QSignalBlocker blocker3(ui->valueTextEdit);
-    const QSignalBlocker blocker4(ui->minValueSpinBox);
-    const QSignalBlocker blocker5(ui->maxValueSpinBox);
-    const QSignalBlocker blocker6(ui->minDoubleSpinBox);
-    const QSignalBlocker blocker7(ui->maxDoubleSpinBox);
-    const QSignalBlocker blocker8(ui->doubleSpinBox);
-    const QSignalBlocker blocker9(ui->optionTypeComboBox);
-    const QSignalBlocker blocker10(ui->commentTextBox);
     switch(currentOption().type)
     {
     case BOOL:
         ui->valueStackedWidget->setCurrentIndex(OptionType::BOOL);
-        if(holds_alternative<bool>(currentOption().value)) {
-            get<bool>(currentOption().value) ? ui->valueCheckBox->setCheckState(Qt::Checked) :
-                                               ui->valueCheckBox->setCheckState(Qt::Unchecked);
-        }
+        get<bool>(currentOption().value) ? ui->valueCheckBox->setCheckState(Qt::Checked) :
+                                           ui->valueCheckBox->setCheckState(Qt::Unchecked);
         break;
     case INT:
         ui->valueStackedWidget->setCurrentIndex(OptionType::INT);
@@ -186,14 +177,6 @@ void MainWindow::updateInfo()
         ui->valueTextEdit->blockSignals(false);
         break;
     }
-    //ui->valueSpinBox->blockSignals(false);
-    //ui->valueCheckBox->blockSignals(false);
-    //ui->valueTextEdit->blockSignals(false);
-    //ui->doubleSpinBox->blockSignals(false);
-    //ui->minValueSpinBox->blockSignals(false);
-    //ui->maxValueSpinBox->blockSignals(false);
-    //ui->minDoubleSpinBox->blockSignals(false);
-    //ui->maxDoubleSpinBox->blockSignals(false);
 }
 
 void MainWindow::saveConfig(const Config & config) const
