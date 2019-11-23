@@ -74,12 +74,12 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>80</y>
-      <width>781</width>
+      <width>791</width>
       <height>491</height>
      </rect>
     </property>
@@ -251,7 +251,7 @@
        <item>
         <widget class="QStackedWidget" name="stackedWidget">
          <property name="currentIndex">
-          <number>0</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="page">
           <widget class="QCheckBox" name="valueCheckBox">
@@ -286,7 +286,7 @@
           </widget>
          </widget>
          <widget class="QWidget" name="page_3">
-          <widget class="QWidget" name="">
+          <widget class="QWidget" name="layoutWidget">
            <property name="geometry">
             <rect>
              <x>0</x>
@@ -355,7 +355,7 @@
           </widget>
          </widget>
          <widget class="QWidget" name="page_4">
-          <widget class="QWidget" name="">
+          <widget class="QWidget" name="layoutWidget">
            <property name="geometry">
             <rect>
              <x>0</x>

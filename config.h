@@ -36,8 +36,9 @@ public:
     std::string filename;
     std::string moduleName;
     std::deque<std::unique_ptr<Option>> options;
+    bool parseError;
     Config(std::string, Logger&);
-    void parseConfig();
+    bool parseConfig();
 };
 
 #endif // CONFIG_H

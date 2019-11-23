@@ -9,10 +9,11 @@ Config::Config(string filename, Logger& logger)
     : lineCounter(nullptr)
     , logger(logger)
     , filename(filename)
+    , parseError(false)
 {
 }
 
-void Config::parseConfig()
+bool Config::parseConfig()
 {
     LineCounter _lineCounter(filename);
     lineCounter = &_lineCounter;
@@ -21,7 +22,10 @@ void Config::parseConfig()
         parseOptions();
     } catch (BadConfigError& e) {
         prepareMessage(e.what());
+        return false;
     }
+    lineCounter->fin.close();
+    return true;
 }
 
 void Config::parseModuleName()
@@ -29,13 +33,11 @@ void Config::parseModuleName()
     string rawModuleName;
     smatch match;
     if(!lineCounter->nextLine(rawModuleName)
-            || !regex_search(rawModuleName, match, Regex::moduleName))
-    {
-        throw BadConfigError("ожидалось имя модуля");
+            || !regex_search(rawModuleName, match, Regex::moduleName)) {
+        parseError = true; throw BadConfigError("ожидалось имя модуля");
     }
-    if(match[1].str().size() > 30)
-    {
-        throw BadConfigError("длина имени модуля превышает 30 символов");
+    if(match[1].str().size() > 30) {
+        parseError = true; throw BadConfigError("длина имени модуля превышает 30 символов");
     }
     moduleName = match[1];
 }
@@ -66,14 +68,14 @@ void Config::parseOption(const string& rawComment, Option& option)
     string rawString;
     if(!lineCounter->nextLine(rawString))
     {
-        throw BadOptionError("ожидалось имя опции");
+        parseError = true; throw BadOptionError("ожидалось имя опции");
     }
     if(regex_match(rawString, Regex::boundaries))
     {
         parseMinAndMax(rawString, option.type, option.min, option.max);
         if(!lineCounter->nextLine(rawString))
         {
-            throw BadOptionError("ожидалось имя опции");
+            parseError = true; throw BadOptionError("ожидалось имя опции");
         }
     }
     parseNameAndValue(rawString, option.type, option.min, option.max, option.name, option.value);
@@ -83,11 +85,11 @@ void Config::parseComment(const string& rawComment, string& comment)
 {
     if(rawComment.length() < 3 || rawComment[0] != '#' || rawComment[1] != ' ')
     {
-        throw BadOptionError("ожидался комментарий");
+        parseError = true; throw BadOptionError("ожидался комментарий");
     }
     if(rawComment.length() > 30002)
     {
-        throw BadOptionError("длина комментария превышает 30000 символов");
+        parseError = true; throw BadOptionError("длина комментария превышает 30000 символов");
     }
     comment = rawComment;
     comment.erase(0, 2);
@@ -100,7 +102,7 @@ OptionType Config::parseType()
     if(!lineCounter->nextLine(rawType)
             || !regex_search(rawType, match, Regex::type))
     {
-        throw BadOptionError("ожидался тип");
+        parseError = true; throw BadOptionError("ожидался тип");
     }
     return Option::stringToOptionType[match[1]];
 }
@@ -117,22 +119,22 @@ void Config::parseMinAndMax(const string& rawMinAndMax,
     {
         if(!regex_match(rawMin, Regex::doubleValue))
         {
-            throw BadOptionError("ожидалось минимальное значение");
+            parseError = true; throw BadOptionError("ожидалось минимальное значение");
         }
         if(optionType != DOUBLE && optionType != INT)
         {
-            throw BadOptionError("несоответствие мин. значения типу");
+            parseError = true; throw BadOptionError("несоответствие мин. значения типу");
         }
         if(optionType == INT && !regex_match(rawMin, Regex::intValue))
         {
-            throw BadOptionError("несоответствие мин. значения типу int");
+            parseError = true; throw BadOptionError("несоответствие мин. значения типу int");
         }
         if(optionType == INT)
         {
             try {
                 min = stoll(rawMin);
             } catch (out_of_range&) {
-                throw BadOptionError("указанное минимальное значение не входит в допустимый диапазон");
+                parseError = true; throw BadOptionError("указанное минимальное значение не входит в допустимый диапазон");
             }
         }
         else
@@ -145,22 +147,22 @@ void Config::parseMinAndMax(const string& rawMinAndMax,
     {
         if(!regex_match(rawMax, Regex::doubleValue))
         {
-            throw BadOptionError("ожидалось максимальное значение");
+            parseError = true; throw BadOptionError("ожидалось максимальное значение");
         }
         if(optionType != DOUBLE && optionType != INT)
         {
-            throw BadOptionError("несоответствие макс. значения типу");
+            parseError = true; throw BadOptionError("несоответствие макс. значения типу");
         }
         if(optionType == INT && !regex_match(rawMax, Regex::intValue))
         {
-            throw BadOptionError("несоответствие макс. значения типу int");
+            parseError = true; throw BadOptionError("несоответствие макс. значения типу int");
         }
         if(optionType == INT)
         {
             try {
                 max = stoll(rawMax);
             } catch (out_of_range&) {
-                throw BadOptionError("указанное максимальное значение не входит в допустимый диапазон");
+                parseError = true; throw BadOptionError("указанное максимальное значение не входит в допустимый диапазон");
             }
         }
         else
@@ -181,15 +183,15 @@ void Config::parseNameAndValue(const string& rawNameAndValue,
     vector<string> tokens{istream_iterator<string>{iss}, istream_iterator<string>{}};
     if(tokens.size() < 3)
     {
-        throw BadOptionError("ожидалось имя опции и значение");
+        parseError = true; throw BadOptionError("ожидалось имя опции и значение");
     }
     if(tokens[0].length() > 30)
     {
-        throw BadOptionError("длина имени опции превышает 30 символов");
+        parseError = true; throw BadOptionError("длина имени опции превышает 30 символов");
     }
     if(!regex_match(tokens[0], Regex::optionName))
     {
-        throw BadOptionError("ожидалось имя опции");
+        parseError = true; throw BadOptionError("ожидалось имя опции");
     }
     name = tokens[0];
     string rawValue = tokens[2];
@@ -198,44 +200,44 @@ void Config::parseNameAndValue(const string& rawNameAndValue,
     case INT:
         if(!regex_match(rawValue, Regex::intValue))
         {
-            throw BadOptionError("ожидалось значение типа int");
+            parseError = true; throw BadOptionError("ожидалось значение типа int");
         }
         try {
             value = stoll(rawValue);
         } catch (out_of_range&) {
-            throw BadOptionError("указанное значение не входит в допустимый диапазон");
+            parseError = true; throw BadOptionError("указанное значение не входит в допустимый диапазон");
         }
         if(holds_alternative<int64_t>(min) && get<int64_t>(value) < get<int64_t>(min)) {
-            throw BadOptionError("значение не соответствует указанному диапазону");
+            parseError = true; throw BadOptionError("значение не соответствует указанному диапазону");
         }
         if(holds_alternative<int64_t>(max) && get<int64_t>(value) > get<int64_t>(max)) {
-            throw BadOptionError("значение не соответствует указанному диапазону");
+            parseError = true; throw BadOptionError("значение не соответствует указанному диапазону");
         }
         break;
     case DOUBLE:
         if(!regex_match(rawValue, Regex::doubleValue))
         {
-            throw BadOptionError("значение опции не соответствует типу double");
+            parseError = true; throw BadOptionError("значение опции не соответствует типу double");
         }
         value = stod(rawValue);
         if(holds_alternative<double>(min) && get<double>(value) < get<double>(min)) {
-            throw BadOptionError("значение не соответствует указанному диапазону");
+            parseError = true; throw BadOptionError("значение не соответствует указанному диапазону");
         }
         if(holds_alternative<double>(max) && get<double>(value) > get<double>(max)) {
-            throw BadOptionError("значение не соответствует указанному диапазону");
+            parseError = true; throw BadOptionError("значение не соответствует указанному диапазону");
         }
         break;
     case BOOL:
         if(!regex_match(rawValue, Regex::boolValue))
         {
-            throw BadOptionError("ожидалось значение типа bool");
+            parseError = true; throw BadOptionError("ожидалось значение типа bool");
         }
         value = bool(rawValue == "true");
         break;
     case STRING:
         if(rawValue.length() > 30000)
         {
-            throw BadOptionError("длина значения опции типа string превышает 30000 символов");
+            parseError = true; throw BadOptionError("длина значения опции типа string превышает 30000 символов");
         }
         value = rawValue;
         break;

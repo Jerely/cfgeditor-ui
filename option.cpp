@@ -36,13 +36,19 @@ string Option::typeToString()
 
 string Option::toString()
 {
-    return typeToString() +
+    return string(state == UNALTERED ? "" : (state == ALTERED ? "*" : "+")) +
+           typeToString() +
            " " + name +
            " = " +
            valueToString();
 }
 
 Option::Option()
+    : state(UNALTERED)
+{}
+
+Option::Option(OptionState state)
+    : state(state)
 {}
 
 StringToOptionType Option::stringToOptionType =

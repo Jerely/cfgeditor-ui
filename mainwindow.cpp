@@ -10,7 +10,6 @@
 using namespace std;
 namespace fs = experimental::filesystem;
 
-
 #define BLOCK_UNWANTED_SIGNALS() \
     const QSignalBlocker blocker1(ui->valueSpinBox); \
     const QSignalBlocker blocker2(ui->valueCheckBox); \
@@ -22,7 +21,6 @@ namespace fs = experimental::filesystem;
     const QSignalBlocker blocker8(ui->valueDoubleSpinBox); \
     const QSignalBlocker blocker9(ui->optionTypeComboBox); \
     const QSignalBlocker blocker10(ui->commentTextBox)
-
 
 const int MAX_STR_LEN = 30000;
 
@@ -99,24 +97,39 @@ inline Config &MainWindow::currentConfig()
 void MainWindow::openProjDir(const string &projDir)
 {
     configs.clear();
-    for (const auto& entry : fs::recursive_directory_iterator(projDir))
-    {
+    for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
         const auto& path = entry.path().u8string();
         if (path.substr(path.find_last_of(".") + 1) == "cfg")
         {
-            configs.push_back(make_unique<Config>(path, logger));
+            auto config = make_unique<Config>(path, logger);
+            if(!config->parseConfig()) {
+                continue;
+            }
+            if(config->parseError) {
+                ui->statusbar->showMessage(tr("Ошибка при чтении ") +
+                                           path.c_str() +
+                                           ".");
+            }
+            configs.push_back(std::move(config));
         }
     }
+    const int oldIndex = ui->tabsWidget->currentIndex();
     ui->tabsWidget->clear();
     for(uint64_t i = 0; i < configs.size(); ++i)
     {
-        configs[i]->parseConfig();
         ui->tabsWidget->addTab(new QWidget, configs[i]->moduleName.c_str());
+    }
+    if(oldIndex < ui->tabsWidget->count() && oldIndex >= 0) {
+        ui->tabsWidget->setCurrentIndex(oldIndex);
     }
 }
 
 inline void MainWindow::updateCurItem()
 {
+    if(currentOption().state == UNALTERED) {
+        currentOption().state = ALTERED;
+    }
+    showThatConfigChanged();
     ui->optionsListWidget->currentItem()->setText(currentOption().toString().c_str());
 }
 
@@ -191,6 +204,7 @@ void MainWindow::saveConfig(const Config & config) const
 {
     ofstream fout(config.filename);
     fout << "### " << config.moduleName << endl;
+    int i = 0;
     for(const auto& option : config.options) {
         fout << "# " << option->comment << endl;
         fout << "##--" << option->typeToString() << endl;
@@ -229,9 +243,16 @@ void MainWindow::saveConfig(const Config & config) const
             fout << endl;
         }
         fout << option->name << " = " << option->valueToString() << endl;
+        option->state = UNALTERED;
+        ui->optionsListWidget->item(i++)->setText(option->toString().c_str());
     }
     ui->statusbar->showMessage(tr("Файл ") + config.filename.c_str() + " сохранен.");
     fout.close();
+}
+
+void MainWindow::showThatConfigChanged()
+{
+    ui->tabsWidget->setTabText(ui->tabsWidget->currentIndex(), tr("*") + currentConfig().moduleName.c_str());
 }
 
 void MainWindow::on_tabsWidget_currentChanged(int index)
@@ -517,7 +538,7 @@ void MainWindow::on_saveButton_clicked()
 
 void MainWindow::on_addButton_clicked()
 {
-    auto option = make_unique<Option>();
+    auto option = make_unique<Option>(NEW);
     option->type = BOOL;
     option->name = "sampleOption";
     option->value = true;
@@ -526,10 +547,9 @@ void MainWindow::on_addButton_clicked()
     newItem->setText(option->toString().c_str());
     const int curRow = ui->optionsListWidget->currentRow();
     ui->optionsListWidget->insertItem(curRow+1, newItem);
-    //ui->optionsListWidget->addItem(newItem);
-    //currentConfig().options.push_back(std::move(option));
     currentConfig().options.insert(currentConfig().options.begin()+curRow+1, std::move(option));
     ui->optionsListWidget->setCurrentRow(curRow+1);
+    showThatConfigChanged();
 }
 
 void MainWindow::on_removeButton_clicked()
@@ -550,10 +570,12 @@ void MainWindow::on_removeButton_clicked()
     ui->optionsListWidget->blockSignals(true);
     delete ui->optionsListWidget->takeItem(curRow);
     ui->optionsListWidget->blockSignals(false);
-    if(nextRow > 0) {
-        ui->optionsListWidget->setCurrentRow(nextRow);
-        updateInfo();
+    if(nextRow < 0) {
+        return;
     }
+    ui->optionsListWidget->setCurrentRow(nextRow);
+    updateInfo();
+    showThatConfigChanged();
 }
 
 void MainWindow::on_updateButton_clicked()

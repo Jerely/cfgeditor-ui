@@ -76,5 +76,6 @@ private:
     void onTextChanged(const QPlainTextEdit*, std::string&);
     void updateInfo();
     void saveConfig(const Config&) const;
+    void showThatConfigChanged();
 };
 #endif // MAINWINDOW_H

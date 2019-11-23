@@ -6,8 +6,8 @@ extern std::string* pLog;
 
 class LineCounter
 {
-    std::ifstream fin;
 public:
+    std::ifstream fin;
     int lineNo;
     std::istream& nextLine(std::string&);
     LineCounter(const std::string&);
