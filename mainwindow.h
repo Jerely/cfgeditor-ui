@@ -32,21 +32,21 @@ private slots:
 
     void onValueSpinBoxEditingFinished();
 
-    void on_minValueSpinBox_editingFinished();
+    void onMinSpinBoxEditingFinished();
 
-    void on_maxValueSpinBox_editingFinished();
+    void onMaxSpinBoxEditingFinished();
 
-    void on_doubleSpinBox_editingFinished();
+    void onValueDoubleSpinBoxEditingFinished();
 
-    void on_minDoubleSpinBox_editingFinished();
+    void onMinDoubleSpinBoxEditingFinished();
 
-    void on_maxDoubleSpinBox_editingFinished();
+    void onMaxDoubleSpinBoxEditingFinished();
 
     //void on_valueLineEdit_editingFinished();
 
     void on_commentTextBox_textChanged();
 
-    void on_valueTextEdit_textChanged();
+    void onValueTextEditTextChanged();
 
     void on_optionTypeComboBox_currentIndexChanged(int index);
 
@@ -62,9 +62,7 @@ private slots:
 
     void on_saveAllButton_clicked();
 
-
-    void onSpinBoxEditingFinished();
-    void onPushButtonClicked();
+    void onValueCheckBoxStateChanged(int state);
 
 private:
     Ui::MainWindow *ui;

@@ -12,14 +12,14 @@ namespace fs = experimental::filesystem;
 
 
 #define BLOCK_UNWANTED_SIGNALS() \
-    /*const QSignalBlocker blocker1(ui->valueSpinBox);*/ \
+    const QSignalBlocker blocker1(ui->valueSpinBox); \
     const QSignalBlocker blocker2(ui->valueCheckBox); \
     const QSignalBlocker blocker3(ui->valueTextEdit); \
-    const QSignalBlocker blocker4(ui->minValueSpinBox); \
-    const QSignalBlocker blocker5(ui->maxValueSpinBox); \
+    const QSignalBlocker blocker4(ui->minSpinBox); \
+    const QSignalBlocker blocker5(ui->maxSpinBox); \
     const QSignalBlocker blocker6(ui->minDoubleSpinBox); \
     const QSignalBlocker blocker7(ui->maxDoubleSpinBox); \
-    const QSignalBlocker blocker8(ui->doubleSpinBox); \
+    const QSignalBlocker blocker8(ui->valueDoubleSpinBox); \
     const QSignalBlocker blocker9(ui->optionTypeComboBox); \
     const QSignalBlocker blocker10(ui->commentTextBox)
 
@@ -50,8 +50,7 @@ void MainWindow::on_optionsListWidget_currentRowChanged(int currentRow)
 
 void MainWindow::on_nameLineEdit_editingFinished()
 {
-    if(ui->optionsListWidget->currentRow() < 0)
-    {
+    if(ui->optionsListWidget->currentRow() < 0) {
         return;
     }
     string newName = ui->nameLineEdit->text().toUtf8().constData();
@@ -62,8 +61,7 @@ void MainWindow::on_nameLineEdit_editingFinished()
         return;
     }
     currentOption().name = newName;
-    ui->optionsListWidget->currentItem()->setText(currentOption().toString().c_str());
-
+    updateCurItem();
 }
 
 inline void MainWindow::customSetup()
@@ -72,13 +70,20 @@ inline void MainWindow::customSetup()
     const int64_t int64max = numeric_limits<int64_t>::max();
     ui->valueSpinBox->setMinimum(int64min);
     ui->valueSpinBox->setMaximum(int64max);
-    ui->minValueSpinBox->setMinimum(int64min);
-    ui->minValueSpinBox->setMaximum(int64max);
-    ui->maxValueSpinBox->setMinimum(int64min);
-    ui->maxValueSpinBox->setMaximum(int64max);
+    ui->minSpinBox->setMinimum(int64min);
+    ui->minSpinBox->setMaximum(int64max);
+    ui->maxSpinBox->setMinimum(int64min);
+    ui->maxSpinBox->setMaximum(int64max);
     connect(ui->valueSpinBox, SIGNAL(editingFinished()), this, SLOT(onValueSpinBoxEditingFinished()));
-    connect(ui->spinBox, SIGNAL(editingFinished()), this, SLOT(onSpinBoxEditingFinished()));
-    connect(ui->pushButton, SIGNAL(clicked()), this, SLOT(onPushButtonClicked()));
+    connect(ui->minSpinBox, SIGNAL(editingFinished()), this, SLOT(onMinSpinBoxEditingFinished()));
+    connect(ui->maxSpinBox, SIGNAL(editingFinished()), this, SLOT(onMaxSpinBoxEditingFinished()));
+    connect(ui->valueDoubleSpinBox, SIGNAL(editingFinished()), this, SLOT(onValueDoubleSpinBoxEditingFinished()));
+    connect(ui->minDoubleSpinBox, SIGNAL(editingFinished()), this, SLOT(onMinDoubleSpinBoxEditingFinished()));
+    connect(ui->maxDoubleSpinBox, SIGNAL(editingFinished()), this, SLOT(onMaxDoubleSpinBoxEditingFinished()));
+    connect(ui->valueTextEdit, SIGNAL(textChanged()), this, SLOT(onValueTextEditTextChanged()));
+    connect(ui->valueCheckBox, SIGNAL(stateChanged(int)), this, SLOT(onValueCheckBoxStateChanged(int)));
+    //connect(ui->spinBox, SIGNAL(editingFinished()), this, SLOT(onSpinBoxEditingFinished()));
+    //connect(ui->pushButton, SIGNAL(clicked()), this, SLOT(onPushButtonClicked()));
 }
 
 inline Option &MainWindow::currentOption()
@@ -131,36 +136,35 @@ void MainWindow::onTextChanged(const QPlainTextEdit* plainTextEdit, string& toCh
 void MainWindow::updateInfo()
 {
     BLOCK_UNWANTED_SIGNALS();
-    //bool pizda = disconnect(ui->valueStackedWidget, SIGNAL(setCurrentIndex(int)), this, SLOT(on_valueSpinBox_editingFinished()));
     ui->optionTypeComboBox->setCurrentIndex(currentOption().type);
     ui->nameLineEdit->setText(currentOption().name.c_str());
     ui->commentTextBox->setPlainText(currentOption().comment.c_str());
     switch(currentOption().type)
     {
     case BOOL:
-        ui->valueStackedWidget->setCurrentIndex(OptionType::BOOL);
+        ui->stackedWidget->setCurrentIndex(OptionType::BOOL);
         get<bool>(currentOption().value) ? ui->valueCheckBox->setCheckState(Qt::Checked) :
                                            ui->valueCheckBox->setCheckState(Qt::Unchecked);
         break;
     case INT:
-        ui->valueStackedWidget->setCurrentIndex(OptionType::INT);
+        ui->stackedWidget->setCurrentIndex(OptionType::INT);
         ui->valueSpinBox->setValue(get<int64_t>(currentOption().value));
         if(holds_alternative<int64_t>(currentOption().min)) {
-            ui->minValueSpinBox->setValue(get<int64_t>(currentOption().min));
+            ui->minSpinBox->setValue(get<int64_t>(currentOption().min));
         }
         else {
-            ui->minValueSpinBox->setValue(numeric_limits<int64_t>::min());
+            ui->minSpinBox->setValue(numeric_limits<int64_t>::min());
         }
         if(holds_alternative<int64_t>(currentOption().max)) {
-            ui->maxValueSpinBox->setValue(get<int64_t>(currentOption().max));
+            ui->maxSpinBox->setValue(get<int64_t>(currentOption().max));
         }
         else {
-            ui->maxValueSpinBox->setValue(numeric_limits<int64_t>::max());
+            ui->maxSpinBox->setValue(numeric_limits<int64_t>::max());
         }
         break;
     case DOUBLE:
-        ui->valueStackedWidget->setCurrentIndex(OptionType::DOUBLE);
-        ui->doubleSpinBox->setValue(get<double>(currentOption().value));
+        ui->stackedWidget->setCurrentIndex(OptionType::DOUBLE);
+        ui->valueDoubleSpinBox->setValue(get<double>(currentOption().value));
         if(holds_alternative<double>(currentOption().min)) {
             ui->minDoubleSpinBox->setValue(get<double>(currentOption().min));
         }
@@ -175,7 +179,7 @@ void MainWindow::updateInfo()
         }
         break;
     case STRING:
-        ui->valueStackedWidget->setCurrentIndex(OptionType::STRING);
+        ui->stackedWidget->setCurrentIndex(OptionType::STRING);
         ui->valueTextEdit->blockSignals(true);
         ui->valueTextEdit->setPlainText(get<string>(currentOption().value).c_str());
         ui->valueTextEdit->blockSignals(false);
@@ -294,75 +298,75 @@ void MainWindow::onValueSpinBoxEditingFinished()
     updateCurItem();
 }
 
-void MainWindow::on_minValueSpinBox_editingFinished()
+void MainWindow::onMinSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
     if(currentRow < 0)
     {
         return;
     }
-    int64_t newMin = ui->minValueSpinBox->value();
+    int64_t newMin = ui->minSpinBox->value();
     if(newMin > get<int64_t>(currentOption().value))
     {
         ui->statusbar->showMessage("Мин. значение не может превышать значения опции.");
         if(holds_alternative<int64_t>(currentOption().min)) {
-            ui->minValueSpinBox->setValue(get<int64_t>(currentOption().min));
+            ui->minSpinBox->setValue(get<int64_t>(currentOption().min));
         }
         else {
-            ui->minValueSpinBox->setValue(numeric_limits<int64_t>::min());
+            ui->minSpinBox->setValue(numeric_limits<int64_t>::min());
         }
         return;
     }
     currentOption().min = newMin;
 }
 
-void MainWindow::on_maxValueSpinBox_editingFinished()
+void MainWindow::onMaxSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
     if(currentRow < 0)
     {
         return;
     }
-    int64_t newMax = ui->maxValueSpinBox->value();
+    int64_t newMax = ui->maxSpinBox->value();
     if(newMax < get<int64_t>(currentOption().value))
     {
         ui->statusbar->showMessage("Макс. значение не может быть меньше значения опции.");
         if(holds_alternative<int64_t>(currentOption().max)) {
-            ui->maxValueSpinBox->setValue(get<int64_t>(currentOption().max));
+            ui->maxSpinBox->setValue(get<int64_t>(currentOption().max));
         }
         else {
-           ui->maxValueSpinBox->setValue(numeric_limits<int64_t>::max());
+           ui->maxSpinBox->setValue(numeric_limits<int64_t>::max());
         }
         return;
     }
     currentOption().max = newMax;
 }
 
-void MainWindow::on_doubleSpinBox_editingFinished()
+void MainWindow::onValueDoubleSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
     if(currentRow < 0)
     {
         return;
     }
-    double newValue = ui->doubleSpinBox->value();
+    double newValue = ui->valueDoubleSpinBox->value();
     if(holds_alternative<double>(currentOption().min) &&  newValue < get<double>(currentOption().min))
     {
         ui->statusbar->showMessage("Значение типа double меньше указанного мин. значения.");
-        ui->doubleSpinBox->setValue(get<double>(currentOption().value));
+        ui->valueDoubleSpinBox->setValue(get<double>(currentOption().value));
         return;
     }
     if(holds_alternative<double>(currentOption().max) && newValue > get<double>(currentOption().max))
     {
         ui->statusbar->showMessage("Значение типа double превышает указанное макс. значение.");
-        ui->doubleSpinBox->setValue(get<double>(currentOption().value));
+        ui->valueDoubleSpinBox->setValue(get<double>(currentOption().value));
         return;
     }
     currentOption().value = newValue;
     updateCurItem();
 }
 
-void MainWindow::on_minDoubleSpinBox_editingFinished()
+void MainWindow::onMinDoubleSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
     if(currentRow < 0)
@@ -384,7 +388,7 @@ void MainWindow::on_minDoubleSpinBox_editingFinished()
     currentOption().min = newMin;
 }
 
-void MainWindow::on_maxDoubleSpinBox_editingFinished()
+void MainWindow::onMaxDoubleSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
     if(currentRow < 0)
@@ -411,7 +415,7 @@ void MainWindow::on_commentTextBox_textChanged()
     onTextChanged(ui->commentTextBox, currentOption().comment);
 }
 
-void MainWindow::on_valueTextEdit_textChanged()
+void MainWindow::onValueTextEditTextChanged()
 {
     string strValue;
     onTextChanged(ui->valueTextEdit, strValue);
@@ -572,12 +576,11 @@ void MainWindow::on_saveAllButton_clicked()
     ui->statusbar->showMessage("Все файлы сохранены.");
 }
 
-void MainWindow::onSpinBoxEditingFinished()
+void MainWindow::onValueCheckBoxStateChanged(int state)
 {
-    return;
-}
-
-void MainWindow::onPushButtonClicked()
-{
-    ui->stackedWidget->setCurrentIndex(1);
+    if(ui->optionsListWidget->currentRow() < 0) {
+        return;
+    }
+    currentOption().value = state == Qt::Checked;
+    updateCurItem();
 }
