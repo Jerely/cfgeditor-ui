@@ -35,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    ui->projDirLineEdit->blockSignals(true);
     delete ui;
 }
 
@@ -80,6 +81,7 @@ inline void MainWindow::customSetup()
     connect(ui->maxDoubleSpinBox, SIGNAL(editingFinished()), this, SLOT(onMaxDoubleSpinBoxEditingFinished()));
     connect(ui->valueTextEdit, SIGNAL(textChanged()), this, SLOT(onValueTextEditTextChanged()));
     connect(ui->valueCheckBox, SIGNAL(stateChanged(int)), this, SLOT(onValueCheckBoxStateChanged(int)));
+    connect(ui->projDirLineEdit, SIGNAL(editingFinished()), this, SLOT(onProjDirLineEditEditingFinished()));
     //connect(ui->spinBox, SIGNAL(editingFinished()), this, SLOT(onSpinBoxEditingFinished()));
     //connect(ui->pushButton, SIGNAL(clicked()), this, SLOT(onPushButtonClicked()));
 }
@@ -96,22 +98,29 @@ inline Config &MainWindow::currentConfig()
 
 void MainWindow::openProjDir(const string &projDir)
 {
+    bool projOpenedSuccessfully = true;
     configs.clear();
-    for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
-        const auto& path = entry.path().u8string();
-        if (path.substr(path.find_last_of(".") + 1) == "cfg")
-        {
-            auto config = make_unique<Config>(path, logger);
-            if(!config->parseConfig()) {
-                continue;
+    try {
+        for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
+            const auto& path = entry.path().u8string();
+            if (path.substr(path.find_last_of(".") + 1) == "cfg")
+            {
+                auto config = make_unique<Config>(path, logger);
+                if(!config->parseConfig()) {
+                    continue;
+                }
+                if(config->parseError) {
+                    projOpenedSuccessfully = false;
+                    ui->statusbar->showMessage(tr("Ошибка при чтении ") +
+                                               path.c_str() +
+                                               ".");
+                }
+                configs.push_back(std::move(config));
             }
-            if(config->parseError) {
-                ui->statusbar->showMessage(tr("Ошибка при чтении ") +
-                                           path.c_str() +
-                                           ".");
-            }
-            configs.push_back(std::move(config));
         }
+    } catch (fs::v1::__cxx11::filesystem_error& e) {
+        ui->statusbar->showMessage(e.what());
+        return;
     }
     const int oldIndex = ui->tabsWidget->currentIndex();
     ui->tabsWidget->clear();
@@ -121,6 +130,9 @@ void MainWindow::openProjDir(const string &projDir)
     }
     if(oldIndex < ui->tabsWidget->count() && oldIndex >= 0) {
         ui->tabsWidget->setCurrentIndex(oldIndex);
+    }
+    if(projOpenedSuccessfully) {
+        ui->statusbar->showMessage("Проект успешно открыт.");
     }
 }
 
@@ -271,14 +283,14 @@ void MainWindow::on_tabsWidget_currentChanged(int index)
     ui->optionsListWidget->setCurrentRow(0);
 }
 
-void MainWindow::on_projDirLineEdit_editingFinished()
+void MainWindow::onProjDirLineEditEditingFinished()
 {
+    static string oldProjDir = "";
     string projDir = ui->projDirLineEdit->text().toUtf8().constData();
-    if(projDir == "")
-    {
+    if(projDir == "" || oldProjDir == projDir) {
         return;
     }
-    openProjDir(projDir);
+    openProjDir(oldProjDir = projDir);
 }
 
 void MainWindow::on_openPushButton_clicked()
@@ -528,7 +540,6 @@ void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
     }
     currentOption().type = static_cast<OptionType>(index);
     updateInfo();
-    updateCurItem();
 }
 
 void MainWindow::on_saveButton_clicked()

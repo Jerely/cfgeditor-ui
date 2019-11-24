@@ -26,7 +26,7 @@ private slots:
 
     void on_tabsWidget_currentChanged(int index);
 
-    void on_projDirLineEdit_editingFinished();
+    void onProjDirLineEditEditingFinished();
 
     void on_openPushButton_clicked();
 
