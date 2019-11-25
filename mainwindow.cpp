@@ -61,9 +61,10 @@ void MainWindow::on_nameLineEdit_editingFinished()
     }
     currentOption().name = newName;
     updateCurItem();
+    saveBackup(currentConfig());
 }
 
-inline void MainWindow::customSetup()
+void MainWindow::customSetup()
 {
     const int64_t int64min = numeric_limits<int64_t>::min();
     const int64_t int64max = numeric_limits<int64_t>::max();
@@ -86,31 +87,38 @@ inline void MainWindow::customSetup()
     //connect(ui->pushButton, SIGNAL(clicked()), this, SLOT(onPushButtonClicked()));
 }
 
-inline Option &MainWindow::currentOption()
+Option &MainWindow::currentOption()
 {
     return *configs[static_cast<uint64_t>(ui->tabsWidget->currentIndex())]->options[static_cast<uint64_t>(ui->optionsListWidget->currentRow())];
 }
 
-inline Config &MainWindow::currentConfig()
+Config &MainWindow::currentConfig()
 {
     return *configs[static_cast<uint64_t>(ui->tabsWidget->currentIndex())];
 }
 
 void MainWindow::openProjDir(const string &projDir)
 {
+    static string oldProjDir = "";
+    deleteAllBackups(oldProjDir);
+    if(projDir == "" || oldProjDir == projDir) {
+        return;
+    }
     bool projOpenedSuccessfully = true;
     configs.clear();
     try {
         for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
-            const auto& path = entry.path().u8string();
-            if (path.substr(path.find_last_of(".") + 1) == "cfg")
+            const auto& fullPath = entry.path().u8string();
+            if (fullPath.substr(fullPath.find_last_of(".") + 1) == "cfg")
             {
-                auto config = make_unique<Config>(path, logger);
+                auto config = make_unique<Config>(fullPath, logger);
                 const bool parsed = config->parseConfig();
                 if(config->parseError) {
                     projOpenedSuccessfully = false;
+                    string path, filename;
+                    extractPath(fullPath, path, filename);
                     ui->statusbar->showMessage(tr("Ошибка при чтении ") +
-                                               path.c_str() +
+                                               filename.c_str() +
                                                ".");
                 }
                 if(parsed) {
@@ -134,9 +142,10 @@ void MainWindow::openProjDir(const string &projDir)
     if(projOpenedSuccessfully) {
         ui->statusbar->showMessage("Проект успешно открыт.");
     }
+    oldProjDir = projDir;
 }
 
-inline void MainWindow::updateCurItem()
+void MainWindow::updateCurItem()
 {
     if(currentOption().state == UNALTERED) {
         currentOption().state = ALTERED;
@@ -212,9 +221,11 @@ void MainWindow::updateInfo()
     }
 }
 
-void MainWindow::saveConfig(const Config & config)
+void MainWindow::saveBackup(const Config &config) const
 {
-    ofstream fout(config.filename);
+    string filename, path;
+    extractPath(config.filename, path, filename);
+    ofstream fout(path + "/" + filename + ".backup");
     fout << "### " << config.moduleName << endl;
     int i = 0;
     for(const auto& option : config.options) {
@@ -255,12 +266,30 @@ void MainWindow::saveConfig(const Config & config)
             fout << endl;
         }
         fout << option->name << " = " << option->valueToString() << endl;
-        option->state = UNALTERED;
         ui->optionsListWidget->item(i++)->setText(option->toString().c_str());
+    }
+    fout.close();
+}
+
+void MainWindow::saveConfig(Config &config)
+{
+    string path, filename;
+    extractPath(config.filename, path, filename);
+    try {
+        fs::remove(config.filename);
+        fs::copy(path + "/" + filename + ".backup", config.filename);
+        fs::remove(path + "/" + filename + ".backup");
+    }
+    catch(fs::v1::__cxx11::filesystem_error &e) {
+        ui->statusbar->showMessage(e.what());
+        return;
+    }
+    for(uint64_t i = 0; i < config.options.size(); ++i) {
+        config.options[i]->state = UNALTERED;
+        ui->optionsListWidget->item(static_cast<int>(i))->setText(config.options[i]->toString().c_str());
     }
     ui->statusbar->showMessage(tr("Файл ") + config.filename.c_str() + " сохранен.");
     showThatConfigAltered(false);
-    fout.close();
 }
 
 void MainWindow::showThatConfigAltered(bool altered)
@@ -271,6 +300,13 @@ void MainWindow::showThatConfigAltered(bool altered)
     else {
         ui->tabsWidget->setTabText(ui->tabsWidget->currentIndex(), currentConfig().moduleName.c_str());
     }
+}
+
+void MainWindow::extractPath(const string &pathAndFilename, string &path, string &filename) const
+{
+    auto found = pathAndFilename.find_last_of("/\\");
+    path = pathAndFilename.substr(0, found);
+    filename = pathAndFilename.substr(found+1);
 }
 
 void MainWindow::on_tabsWidget_currentChanged(int index)
@@ -291,12 +327,7 @@ void MainWindow::on_tabsWidget_currentChanged(int index)
 
 void MainWindow::onProjDirLineEditEditingFinished()
 {
-    static string oldProjDir = "";
-    string projDir = ui->projDirLineEdit->text().toUtf8().constData();
-    if(projDir == "" || oldProjDir == projDir) {
-        return;
-    }
-    openProjDir(oldProjDir = projDir);
+    openProjDir(ui->projDirLineEdit->text().toUtf8().constData());
 }
 
 void MainWindow::on_openPushButton_clicked()
@@ -335,6 +366,7 @@ void MainWindow::onValueSpinBoxEditingFinished()
     }
     currentOption().value = newValue;
     updateCurItem();
+    saveBackup(currentConfig());
 }
 
 void MainWindow::onMinSpinBoxEditingFinished()
@@ -357,6 +389,7 @@ void MainWindow::onMinSpinBoxEditingFinished()
         return;
     }
     currentOption().min = newMin;
+    saveBackup(currentConfig());
 }
 
 void MainWindow::onMaxSpinBoxEditingFinished()
@@ -379,6 +412,7 @@ void MainWindow::onMaxSpinBoxEditingFinished()
         return;
     }
     currentOption().max = newMax;
+    saveBackup(currentConfig());
 }
 
 void MainWindow::onValueDoubleSpinBoxEditingFinished()
@@ -403,6 +437,7 @@ void MainWindow::onValueDoubleSpinBoxEditingFinished()
     }
     currentOption().value = newValue;
     updateCurItem();
+    saveBackup(currentConfig());
 }
 
 void MainWindow::onMinDoubleSpinBoxEditingFinished()
@@ -425,6 +460,7 @@ void MainWindow::onMinDoubleSpinBoxEditingFinished()
         return;
     }
     currentOption().min = newMin;
+    saveBackup(currentConfig());
 }
 
 void MainWindow::onMaxDoubleSpinBoxEditingFinished()
@@ -447,11 +483,13 @@ void MainWindow::onMaxDoubleSpinBoxEditingFinished()
         return;
     }
     currentOption().max = newMax;
+    saveBackup(currentConfig());
 }
 
 void MainWindow::on_commentTextBox_textChanged()
 {
     onTextChanged(ui->commentTextBox, currentOption().comment);
+    saveBackup(currentConfig());
 }
 
 void MainWindow::onValueTextEditTextChanged()
@@ -460,6 +498,7 @@ void MainWindow::onValueTextEditTextChanged()
     onTextChanged(ui->valueTextEdit, strValue);
     currentOption().value = strValue;
     updateCurItem();
+    saveBackup(currentConfig());
 }
 
 void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
@@ -546,6 +585,7 @@ void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
     }
     currentOption().type = static_cast<OptionType>(index);
     updateInfo();
+    saveBackup(currentConfig());
 }
 
 void MainWindow::on_saveButton_clicked()
@@ -567,6 +607,7 @@ void MainWindow::on_addButton_clicked()
     currentConfig().options.insert(currentConfig().options.begin()+curRow+1, std::move(option));
     ui->optionsListWidget->setCurrentRow(curRow+1);
     showThatConfigAltered();
+    saveBackup(currentConfig());
 }
 
 void MainWindow::on_removeButton_clicked()
@@ -593,6 +634,7 @@ void MainWindow::on_removeButton_clicked()
     ui->optionsListWidget->setCurrentRow(nextRow);
     updateInfo();
     showThatConfigAltered();
+    saveBackup(currentConfig());
 }
 
 void MainWindow::on_updateButton_clicked()
@@ -609,10 +651,9 @@ void MainWindow::on_helpButton_clicked()
 
 void MainWindow::on_saveAllButton_clicked()
 {
-    for(const auto& config : configs) {
+    for(auto& config : configs) {
         saveConfig(*config);
     }
-    ui->statusbar->showMessage("Все файлы сохранены.");
 }
 
 void MainWindow::onValueCheckBoxStateChanged(int state)
@@ -622,4 +663,39 @@ void MainWindow::onValueCheckBoxStateChanged(int state)
     }
     currentOption().value = state == Qt::Checked;
     updateCurItem();
+    saveBackup(currentConfig());
+}
+
+void MainWindow::closeEvent (QCloseEvent *event)
+{
+    deleteAllBackups(ui->projDirLineEdit->text().toUtf8().constData());
+    event->accept();
+}
+
+void MainWindow::deleteAllBackups(const string &projDir)
+{
+    if(projDir == "") {
+        return;
+    }
+    try {
+        for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
+           const auto& pathAndFilename = entry.path().u8string();
+           string path, filename;
+           extractPath(pathAndFilename, path, filename);
+           auto lastDot = filename.find_last_of(".");
+           string extension = filename.substr(lastDot+1);
+           if(extension == "backup") {
+               fs::remove(pathAndFilename);
+           }
+       }
+    } catch (fs::v1::__cxx11::filesystem_error &e) {
+        ui->statusbar->showMessage(e.what());
+    }
+}
+
+void MainWindow::deleteBackup(const string &cfgPathAndFilename)
+{
+    string path, filename;
+    extractPath(cfgPathAndFilename, path, filename);
+
 }

@@ -42,8 +42,6 @@ private slots:
 
     void onMaxDoubleSpinBoxEditingFinished();
 
-    //void on_valueLineEdit_editingFinished();
-
     void on_commentTextBox_textChanged();
 
     void onValueTextEditTextChanged();
@@ -68,14 +66,19 @@ private:
     Ui::MainWindow *ui;
     Logger logger;
     std::vector<std::unique_ptr<Config>> configs;
-    inline void customSetup();
-    inline Option& currentOption();
-    inline Config& currentConfig();
+    void customSetup();
+    Option& currentOption();
+    Config& currentConfig();
     void openProjDir(const std::string&);
-    inline void updateCurItem();
+    void updateCurItem();
     void onTextChanged(const QPlainTextEdit*, std::string&);
     void updateInfo();
-    void saveConfig(const Config&);
+    void saveBackup(const Config&) const;
+    void saveConfig(Config&);
     void showThatConfigAltered(bool altered = true);
+    void extractPath(const std::string&, std::string&, std::string&) const;
+    void closeEvent (QCloseEvent *event);
+    void deleteAllBackups(const std::string&);
+    void deleteBackup(const std::string&);
 };
 #endif // MAINWINDOW_H
