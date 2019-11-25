@@ -139,6 +139,9 @@ void Config::parseMinAndMax(const string& rawMinAndMax,
         }
         else
         {
+            if(rawMin.length() > 300) {
+                parseError = true; throw BadOptionError("длина мин. значения типа double превышает 300 символов");
+            }
             min = stod(rawMin);
         }
     }
@@ -157,16 +160,17 @@ void Config::parseMinAndMax(const string& rawMinAndMax,
         {
             parseError = true; throw BadOptionError("несоответствие макс. значения типу int");
         }
-        if(optionType == INT)
-        {
+        if(optionType == INT) {
             try {
                 max = stoll(rawMax);
             } catch (out_of_range&) {
                 parseError = true; throw BadOptionError("указанное максимальное значение не входит в допустимый диапазон");
             }
         }
-        else
-        {
+        else {
+            if(rawMax.length() > 300) {
+                parseError = true; throw BadOptionError("длина макс. значения типа double превышает 300 символов");
+            }
             max = stod(rawMax);
         }
     }
@@ -218,6 +222,9 @@ void Config::parseNameAndValue(const string& rawNameAndValue,
         if(!regex_match(rawValue, Regex::doubleValue))
         {
             parseError = true; throw BadOptionError("значение опции не соответствует типу double");
+        }
+        if(rawValue.length() > 300) {
+            parseError = true; throw BadOptionError("длина значения опции типа double превышает 300 символов");
         }
         value = stod(rawValue);
         if(holds_alternative<double>(min) && get<double>(value) < get<double>(min)) {

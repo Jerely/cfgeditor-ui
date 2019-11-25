@@ -106,16 +106,16 @@ void MainWindow::openProjDir(const string &projDir)
             if (path.substr(path.find_last_of(".") + 1) == "cfg")
             {
                 auto config = make_unique<Config>(path, logger);
-                if(!config->parseConfig()) {
-                    continue;
-                }
+                const bool parsed = config->parseConfig();
                 if(config->parseError) {
                     projOpenedSuccessfully = false;
                     ui->statusbar->showMessage(tr("Ошибка при чтении ") +
                                                path.c_str() +
                                                ".");
                 }
-                configs.push_back(std::move(config));
+                if(parsed) {
+                    configs.push_back(std::move(config));
+                }
             }
         }
     } catch (fs::v1::__cxx11::filesystem_error& e) {
@@ -141,7 +141,7 @@ inline void MainWindow::updateCurItem()
     if(currentOption().state == UNALTERED) {
         currentOption().state = ALTERED;
     }
-    showThatConfigChanged();
+    showThatConfigAltered();
     ui->optionsListWidget->currentItem()->setText(currentOption().toString().c_str());
 }
 
@@ -212,7 +212,7 @@ void MainWindow::updateInfo()
     }
 }
 
-void MainWindow::saveConfig(const Config & config) const
+void MainWindow::saveConfig(const Config & config)
 {
     ofstream fout(config.filename);
     fout << "### " << config.moduleName << endl;
@@ -259,12 +259,18 @@ void MainWindow::saveConfig(const Config & config) const
         ui->optionsListWidget->item(i++)->setText(option->toString().c_str());
     }
     ui->statusbar->showMessage(tr("Файл ") + config.filename.c_str() + " сохранен.");
+    showThatConfigAltered(false);
     fout.close();
 }
 
-void MainWindow::showThatConfigChanged()
+void MainWindow::showThatConfigAltered(bool altered)
 {
-    ui->tabsWidget->setTabText(ui->tabsWidget->currentIndex(), tr("*") + currentConfig().moduleName.c_str());
+    if(altered) {
+        ui->tabsWidget->setTabText(ui->tabsWidget->currentIndex(), tr("*") + currentConfig().moduleName.c_str());
+    }
+    else {
+        ui->tabsWidget->setTabText(ui->tabsWidget->currentIndex(), currentConfig().moduleName.c_str());
+    }
 }
 
 void MainWindow::on_tabsWidget_currentChanged(int index)
@@ -560,7 +566,7 @@ void MainWindow::on_addButton_clicked()
     ui->optionsListWidget->insertItem(curRow+1, newItem);
     currentConfig().options.insert(currentConfig().options.begin()+curRow+1, std::move(option));
     ui->optionsListWidget->setCurrentRow(curRow+1);
-    showThatConfigChanged();
+    showThatConfigAltered();
 }
 
 void MainWindow::on_removeButton_clicked()
@@ -586,7 +592,7 @@ void MainWindow::on_removeButton_clicked()
     }
     ui->optionsListWidget->setCurrentRow(nextRow);
     updateInfo();
-    showThatConfigChanged();
+    showThatConfigAltered();
 }
 
 void MainWindow::on_updateButton_clicked()

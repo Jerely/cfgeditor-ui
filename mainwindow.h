@@ -75,7 +75,7 @@ private:
     inline void updateCurItem();
     void onTextChanged(const QPlainTextEdit*, std::string&);
     void updateInfo();
-    void saveConfig(const Config&) const;
-    void showThatConfigChanged();
+    void saveConfig(const Config&);
+    void showThatConfigAltered(bool altered = true);
 };
 #endif // MAINWINDOW_H

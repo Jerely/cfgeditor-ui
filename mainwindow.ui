@@ -251,7 +251,7 @@
        <item>
         <widget class="QStackedWidget" name="stackedWidget">
          <property name="currentIndex">
-          <number>1</number>
+          <number>3</number>
          </property>
          <widget class="QWidget" name="page">
           <widget class="QCheckBox" name="valueCheckBox">
@@ -307,6 +307,9 @@
                <font>
                 <pointsize>11</pointsize>
                </font>
+              </property>
+              <property name="minimum">
+               <number>0</number>
               </property>
              </widget>
             </item>
@@ -377,6 +380,15 @@
                 <pointsize>11</pointsize>
                </font>
               </property>
+              <property name="decimals">
+               <number>323</number>
+              </property>
+              <property name="minimum">
+               <double>-10000000000000000910359990503684350104604539951754865571545457374840902895351334152154180097541612190564352.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>10000000000000000910359990503684350104604539951754865571545457374840902895351334152154180097541612190564352.000000000000000</double>
+              </property>
              </widget>
             </item>
             <item>
@@ -400,6 +412,18 @@
                   <pointsize>11</pointsize>
                  </font>
                 </property>
+                <property name="decimals">
+                 <number>323</number>
+                </property>
+                <property name="minimum">
+                 <double>-10000000000000000910359990503684350104604539951754865571545457374840902895351334152154180097541612190564352.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>10000000000000000910359990503684350104604539951754865571545457374840902895351334152154180097541612190564352.000000000000000</double>
+                </property>
+                <property name="value">
+                 <double>0.000000000000000</double>
+                </property>
                </widget>
               </item>
               <item row="1" column="0">
@@ -420,6 +444,15 @@
                  <font>
                   <pointsize>11</pointsize>
                  </font>
+                </property>
+                <property name="decimals">
+                 <number>323</number>
+                </property>
+                <property name="minimum">
+                 <double>-10000000000000000910359990503684350104604539951754865571545457374840902895351334152154180097541612190564352.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>10000000000000000910359990503684350104604539951754865571545457374840902895351334152154180097541612190564352.000000000000000</double>
                 </property>
                </widget>
               </item>
