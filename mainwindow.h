@@ -74,11 +74,12 @@ private:
     void onTextChanged(const QPlainTextEdit*, std::string&);
     void updateInfo();
     void saveBackup(const Config&) const;
-    void saveConfig(Config&);
-    void showThatConfigAltered(bool altered = true);
+    void saveConfig(uint64_t configIndex);
+    void showThatConfigAltered(uint64_t configIndex, bool altered = true);
+    void showThatConfigAltered(int configIndex, bool altered = true);
     void extractPath(const std::string&, std::string&, std::string&) const;
     void closeEvent (QCloseEvent *event);
-    void deleteAllBackups(const std::string&);
+    void deleteAllBackups();
     void deleteBackup(const std::string&);
 };
 #endif // MAINWINDOW_H

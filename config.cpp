@@ -6,33 +6,47 @@
 using namespace std;
 
 Config::Config(string filename, Logger& logger)
-    : lineCounter(nullptr)
-    , logger(logger)
+    : logger(logger)
+    , fin(filename)
+    , lineNo(0)
     , filename(filename)
     , parseError(false)
 {
 }
 
+Config::~Config()
+{
+    fin.close();
+}
+
 bool Config::parseConfig()
 {
-    LineCounter _lineCounter(filename);
-    lineCounter = &_lineCounter;
     try {
         parseModuleName();
         parseOptions();
     } catch (BadConfigError& e) {
         prepareMessage(e.what());
+        fin.close();
         return false;
     }
-    lineCounter->fin.close();
+    fin.close();
     return true;
+}
+
+istream &Config::nextLine(string &outl)
+{
+    istream& i = getline(fin, outl);
+    if(i) {
+        lineNo++;
+    }
+    return i;
 }
 
 void Config::parseModuleName()
 {
     string rawModuleName;
     smatch match;
-    if(!lineCounter->nextLine(rawModuleName)
+    if(!nextLine(rawModuleName)
             || !regex_search(rawModuleName, match, Regex::moduleName)) {
         parseError = true; throw BadConfigError("ожидалось имя модуля");
     }
@@ -45,7 +59,7 @@ void Config::parseModuleName()
 void Config::parseOptions()
 {
     string rawComment;
-    while(lineCounter->nextLine(rawComment))
+    while(nextLine(rawComment))
     {
         if(rawComment.length() < 3 || rawComment[0] != '#' || rawComment[1] != ' ')
         {
@@ -66,14 +80,14 @@ void Config::parseOption(const string& rawComment, Option& option)
     parseComment(rawComment, option.comment);
     option.type = parseType();
     string rawString;
-    if(!lineCounter->nextLine(rawString))
+    if(!nextLine(rawString))
     {
         parseError = true; throw BadOptionError("ожидалось имя опции");
     }
     if(regex_match(rawString, Regex::boundaries))
     {
         parseMinAndMax(rawString, option.type, option.min, option.max);
-        if(!lineCounter->nextLine(rawString))
+        if(!nextLine(rawString))
         {
             parseError = true; throw BadOptionError("ожидалось имя опции");
         }
@@ -99,7 +113,7 @@ OptionType Config::parseType()
 {
     string rawType;
     smatch match;
-    if(!lineCounter->nextLine(rawType)
+    if(!nextLine(rawType)
             || !regex_search(rawType, match, Regex::type))
     {
         parseError = true; throw BadOptionError("ожидался тип");
@@ -256,7 +270,7 @@ void Config::prepareMessage(const string & reason)
     logger.log(string("Синтаксическая ошибка, файл ") +
                filename +
                ", строка " +
-               to_string(lineCounter->lineNo) +
+               to_string(lineNo) +
                ": " +
                reason +
                ".\n");

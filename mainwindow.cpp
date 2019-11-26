@@ -100,7 +100,7 @@ Config &MainWindow::currentConfig()
 void MainWindow::openProjDir(const string &projDir)
 {
     static string oldProjDir = "";
-    deleteAllBackups(oldProjDir);
+    deleteAllBackups();
     if(projDir == "" || oldProjDir == projDir) {
         return;
     }
@@ -150,7 +150,7 @@ void MainWindow::updateCurItem()
     if(currentOption().state == UNALTERED) {
         currentOption().state = ALTERED;
     }
-    showThatConfigAltered();
+    showThatConfigAltered(ui->tabsWidget->currentIndex());
     ui->optionsListWidget->currentItem()->setText(currentOption().toString().c_str());
 }
 
@@ -223,9 +223,9 @@ void MainWindow::updateInfo()
 
 void MainWindow::saveBackup(const Config &config) const
 {
-    string filename, path;
-    extractPath(config.filename, path, filename);
-    ofstream fout(path + "/" + filename + ".backup");
+    //string filename, path;
+    //extractPath(config.filename, path, filename);
+    ofstream fout(config.filename + ".backup");
     fout << "### " << config.moduleName << endl;
     int i = 0;
     for(const auto& option : config.options) {
@@ -271,35 +271,42 @@ void MainWindow::saveBackup(const Config &config) const
     fout.close();
 }
 
-void MainWindow::saveConfig(Config &config)
+void MainWindow::saveConfig(uint64_t configIndex)
 {
-    string path, filename;
-    extractPath(config.filename, path, filename);
-    try {
-        fs::remove(config.filename);
-        fs::copy(path + "/" + filename + ".backup", config.filename);
-        fs::remove(path + "/" + filename + ".backup");
-    }
-    catch(fs::v1::__cxx11::filesystem_error &e) {
-        ui->statusbar->showMessage(e.what());
+    //string path, filename;
+    //extractPath(config.filename, path, filename);
+    Config &config = *configs[configIndex];
+    if(!fs::exists(config.filename + ".backup")) {
         return;
     }
+    if(fs::exists(config.filename)) {
+        fs::remove(config.filename);
+    }
+    fs::copy(config.filename + ".backup", config.filename);
+    deleteBackup(config.filename);
     for(uint64_t i = 0; i < config.options.size(); ++i) {
         config.options[i]->state = UNALTERED;
-        ui->optionsListWidget->item(static_cast<int>(i))->setText(config.options[i]->toString().c_str());
+        if(ui->tabsWidget->currentIndex() == static_cast<int>(configIndex)) {
+            ui->optionsListWidget->item(static_cast<int>(i))->setText(config.options[i]->toString().c_str());
+        }
     }
     ui->statusbar->showMessage(tr("Файл ") + config.filename.c_str() + " сохранен.");
-    showThatConfigAltered(false);
+    showThatConfigAltered(configIndex, false);
 }
 
-void MainWindow::showThatConfigAltered(bool altered)
+void MainWindow::showThatConfigAltered(uint64_t configIndex, bool altered)
 {
     if(altered) {
-        ui->tabsWidget->setTabText(ui->tabsWidget->currentIndex(), tr("*") + currentConfig().moduleName.c_str());
+        ui->tabsWidget->setTabText(static_cast<int>(configIndex), tr("*") + configs[configIndex]->moduleName.c_str());
     }
     else {
-        ui->tabsWidget->setTabText(ui->tabsWidget->currentIndex(), currentConfig().moduleName.c_str());
+        ui->tabsWidget->setTabText(static_cast<int>(configIndex), configs[configIndex]->moduleName.c_str());
     }
+}
+
+void MainWindow::showThatConfigAltered(int configIndex, bool altered)
+{
+    showThatConfigAltered(static_cast<uint64_t>(configIndex), altered);
 }
 
 void MainWindow::extractPath(const string &pathAndFilename, string &path, string &filename) const
@@ -336,8 +343,7 @@ void MainWindow::on_openPushButton_clicked()
                                                  "~",
                                                  QFileDialog::ShowDirsOnly
                                                  | QFileDialog::DontResolveSymlinks);
-    if(dir == "")
-    {
+    if(dir == "") {
         return;
     }
     ui->projDirLineEdit->setText(dir);
@@ -590,7 +596,7 @@ void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
 
 void MainWindow::on_saveButton_clicked()
 {
-    saveConfig(currentConfig());
+    saveConfig(static_cast<uint64_t>(ui->tabsWidget->currentIndex()));
 }
 
 void MainWindow::on_addButton_clicked()
@@ -606,7 +612,7 @@ void MainWindow::on_addButton_clicked()
     ui->optionsListWidget->insertItem(curRow+1, newItem);
     currentConfig().options.insert(currentConfig().options.begin()+curRow+1, std::move(option));
     ui->optionsListWidget->setCurrentRow(curRow+1);
-    showThatConfigAltered();
+    showThatConfigAltered(ui->tabsWidget->currentIndex());
     saveBackup(currentConfig());
 }
 
@@ -633,7 +639,7 @@ void MainWindow::on_removeButton_clicked()
     }
     ui->optionsListWidget->setCurrentRow(nextRow);
     updateInfo();
-    showThatConfigAltered();
+    showThatConfigAltered(ui->tabsWidget->currentIndex());
     saveBackup(currentConfig());
 }
 
@@ -651,8 +657,8 @@ void MainWindow::on_helpButton_clicked()
 
 void MainWindow::on_saveAllButton_clicked()
 {
-    for(auto& config : configs) {
-        saveConfig(*config);
+    for(uint64_t i = 0; i < configs.size(); ++i) {
+        saveConfig(i);
     }
 }
 
@@ -668,34 +674,37 @@ void MainWindow::onValueCheckBoxStateChanged(int state)
 
 void MainWindow::closeEvent (QCloseEvent *event)
 {
-    deleteAllBackups(ui->projDirLineEdit->text().toUtf8().constData());
+    deleteAllBackups();
     event->accept();
 }
 
-void MainWindow::deleteAllBackups(const string &projDir)
+void MainWindow::deleteAllBackups()
 {
-    if(projDir == "") {
-        return;
-    }
-    try {
-        for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
-           const auto& pathAndFilename = entry.path().u8string();
-           string path, filename;
-           extractPath(pathAndFilename, path, filename);
-           auto lastDot = filename.find_last_of(".");
-           string extension = filename.substr(lastDot+1);
-           if(extension == "backup") {
-               fs::remove(pathAndFilename);
-           }
-       }
-    } catch (fs::v1::__cxx11::filesystem_error &e) {
-        ui->statusbar->showMessage(e.what());
+    //if(projDir == "") {
+    //    return;
+    //}
+    //try {
+    //    for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
+    //       const auto& pathAndFilename = entry.path().u8string();
+    //       string path, filename;
+    //       extractPath(pathAndFilename, path, filename);
+    //       auto lastDot = filename.find_last_of(".");
+    //       string extension = filename.substr(lastDot+1);
+    //       if(extension == "backup") {
+    //           fs::remove(pathAndFilename);
+    //       }
+    //   }
+    //} catch (fs::v1::__cxx11::filesystem_error &e) {
+    //    ui->statusbar->showMessage(e.what());
+    //}
+    for(const auto& config : configs) {
+        deleteBackup(config->filename);
     }
 }
 
 void MainWindow::deleteBackup(const string &cfgPathAndFilename)
 {
-    string path, filename;
-    extractPath(cfgPathAndFilename, path, filename);
-
+    try {
+        fs::remove(cfgPathAndFilename + ".backup");
+    } catch(fs::v1::__cxx11::filesystem_error &) {}
 }

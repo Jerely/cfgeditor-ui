@@ -22,8 +22,9 @@ namespace Regex
 
 class Config
 {
-    LineCounter* lineCounter;
     Logger& logger;
+    std::ifstream fin;
+    int lineNo;
     void parseModuleName();
     void parseOptions();
     void parseOption(const std::string&, Option&);
@@ -38,7 +39,9 @@ public:
     std::deque<std::unique_ptr<Option>> options;
     bool parseError;
     Config(std::string, Logger&);
+    ~Config();
     bool parseConfig();
+    std::istream& nextLine(std::string&);
 };
 
 #endif // CONFIG_H
