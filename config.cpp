@@ -7,35 +7,36 @@ using namespace std;
 
 Config::Config(string filename, Logger& logger)
     : logger(logger)
-    , fin(filename)
     , lineNo(0)
     , filename(filename)
     , parseError(false)
-{
-}
+{}
 
-Config::~Config()
-{
-    fin.close();
-}
+Config::~Config() {}
 
 bool Config::parseConfig()
 {
+    return parseConfig(filename);
+}
+
+bool Config::parseConfig(const string &filename)
+{
+    fin = make_unique<ifstream>(filename);
     try {
         parseModuleName();
         parseOptions();
     } catch (BadConfigError& e) {
         prepareMessage(e.what());
-        fin.close();
+        fin->close();
         return false;
     }
-    fin.close();
+    fin->close();
     return true;
 }
 
 istream &Config::nextLine(string &outl)
 {
-    istream& i = getline(fin, outl);
+    istream& i = getline(*fin, outl);
     if(i) {
         lineNo++;
     }

@@ -111,6 +111,13 @@ void MainWindow::openProjDir(const string &projDir)
             const auto& fullPath = entry.path().u8string();
             if (fullPath.substr(fullPath.find_last_of(".") + 1) == "cfg")
             {
+                if(fs::exists(fullPath + ".backup")) {
+                    //QMessageBox::StandardButton resBtn = QMessageBox::question( this, APP_NAME,
+                    //                                                                tr("Are you sure?\n"),
+                    //                                                                QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes,
+                    //                                                                QMessageBox::Yes);
+
+                }
                 auto config = make_unique<Config>(fullPath, logger);
                 const bool parsed = config->parseConfig();
                 if(config->parseError) {

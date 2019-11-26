@@ -23,7 +23,7 @@ namespace Regex
 class Config
 {
     Logger& logger;
-    std::ifstream fin;
+    std::unique_ptr<std::ifstream> fin;
     int lineNo;
     void parseModuleName();
     void parseOptions();
@@ -41,6 +41,7 @@ public:
     Config(std::string, Logger&);
     ~Config();
     bool parseConfig();
+    bool parseConfig(const std::string&);
     std::istream& nextLine(std::string&);
 };
 
