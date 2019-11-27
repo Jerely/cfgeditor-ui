@@ -1,3 +1,4 @@
+#include <QShortcut>
 #include <QMessageBox>
 #include <QFileDialog>
 #include "mainwindow.h"
@@ -68,6 +69,26 @@ void MainWindow::on_nameLineEdit_editingFinished()
     saveBackup(currentConfig());
 }
 
+void MainWindow::tabsWidgetSetFocus()
+{
+    ui->tabsWidget->setFocus();
+}
+
+void MainWindow::optionsListSetFocus()
+{
+    ui->optionsListWidget->setFocus();
+}
+
+void MainWindow::comboBoxSetFocus()
+{
+    ui->optionTypeComboBox->setFocus();
+}
+
+void MainWindow::projDirLineEditSetFocus()
+{
+    ui->projDirLineEdit->setFocus();
+}
+
 void MainWindow::customSetup()
 {
     const int64_t int64min = numeric_limits<int64_t>::min();
@@ -87,8 +108,18 @@ void MainWindow::customSetup()
     connect(ui->valueTextEdit, SIGNAL(textChanged()), this, SLOT(onValueTextEditTextChanged()));
     connect(ui->valueCheckBox, SIGNAL(stateChanged(int)), this, SLOT(onValueCheckBoxStateChanged(int)));
     connect(ui->projDirLineEdit, SIGNAL(editingFinished()), this, SLOT(onProjDirLineEditEditingFinished()));
-    //connect(ui->spinBox, SIGNAL(editingFinished()), this, SLOT(onSpinBoxEditingFinished()));
-    //connect(ui->pushButton, SIGNAL(clicked()), this, SLOT(onPushButtonClicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_U), this, SLOT(on_updateButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_A), this, SLOT(on_addButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_R), this, SLOT(on_removeButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_S), this, SLOT(on_saveButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_O), this, SLOT(on_openPushButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_H), this, SLOT(on_helpButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_S), this, SLOT(on_saveAllButton_clicked()));
+
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_T), this, SLOT(tabsWidgetSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_L), this, SLOT(optionsListSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_C), this, SLOT(comboBoxSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_O), this, SLOT(projDirLineEditSetFocus()));
 }
 
 Option &MainWindow::currentOption()
@@ -104,11 +135,11 @@ Config &MainWindow::currentConfig()
 void MainWindow::openProjDir(const string &projDir, bool reopen)
 {
     static string oldProjDir = "";
-    deleteAllBackups();
     if((projDir == "" || oldProjDir == projDir) && !reopen) {
         return;
     }
     oldProjDir = projDir;
+    deleteAllBackups();
     bool projOpenedSuccessfully = true;
     configs.clear();
     try {
@@ -131,6 +162,7 @@ void MainWindow::openProjDir(const string &projDir, bool reopen)
                     }
                     if(resBtn == QMessageBox::No) {
                         parsed = config->parseConfig();
+                        fs::remove(fullPath + ".backup");
                     }
                     if(resBtn == QMessageBox::Cancel) {
                         continue;
@@ -639,6 +671,8 @@ void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
     }
     currentOption().type = static_cast<OptionType>(index);
     updateInfo();
+    updateCurItem();
+    showThatConfigAltered(ui->tabsWidget->currentIndex());
     saveBackup(currentConfig());
 }
 

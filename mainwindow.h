@@ -62,6 +62,14 @@ private slots:
 
     void onValueCheckBoxStateChanged(int state);
 
+    void tabsWidgetSetFocus();
+
+    void optionsListSetFocus();
+
+    void comboBoxSetFocus();
+
+    void projDirLineEditSetFocus();
+
 private:
     Ui::MainWindow *ui;
     Logger logger;

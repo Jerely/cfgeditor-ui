@@ -77,9 +77,9 @@
    <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>80</y>
-      <width>791</width>
+      <x>12</x>
+      <y>82</y>
+      <width>781</width>
       <height>491</height>
      </rect>
     </property>
@@ -251,7 +251,7 @@
        <item>
         <widget class="QStackedWidget" name="stackedWidget">
          <property name="currentIndex">
-          <number>3</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="page">
           <widget class="QCheckBox" name="valueCheckBox">
@@ -288,6 +288,9 @@
              <pointsize>11</pointsize>
             </font>
            </property>
+           <property name="tabChangesFocus">
+            <bool>true</bool>
+           </property>
           </widget>
          </widget>
          <widget class="QWidget" name="page_3">
@@ -296,7 +299,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>391</width>
+             <width>371</width>
              <height>91</height>
             </rect>
            </property>
@@ -368,7 +371,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>391</width>
+             <width>371</width>
              <height>91</height>
             </rect>
            </property>
@@ -496,19 +499,6 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>128</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
           <widget class="QPushButton" name="saveAllButton">
            <property name="font">
             <font>
@@ -531,6 +521,19 @@
             <string>Справка</string>
            </property>
           </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>128</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </item>
@@ -555,7 +558,21 @@
   <tabstop>optionsListWidget</tabstop>
   <tabstop>optionTypeComboBox</tabstop>
   <tabstop>nameLineEdit</tabstop>
+  <tabstop>valueCheckBox</tabstop>
+  <tabstop>valueTextEdit</tabstop>
+  <tabstop>valueSpinBox</tabstop>
+  <tabstop>minSpinBox</tabstop>
+  <tabstop>maxSpinBox</tabstop>
+  <tabstop>valueDoubleSpinBox</tabstop>
+  <tabstop>minDoubleSpinBox</tabstop>
+  <tabstop>maxDoubleSpinBox</tabstop>
   <tabstop>commentTextBox</tabstop>
+  <tabstop>saveButton</tabstop>
+  <tabstop>addButton</tabstop>
+  <tabstop>removeButton</tabstop>
+  <tabstop>updateButton</tabstop>
+  <tabstop>saveAllButton</tabstop>
+  <tabstop>helpButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>
