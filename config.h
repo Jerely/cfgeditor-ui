@@ -16,7 +16,8 @@ namespace Regex
     const std::regex intValue("^[+-]?\\d*$");
     const std::regex doubleValue("^[+-]?((\\d+)|(\\d+\\.\\d*)|(\\d*\\.\\d+))([Ee][+-]?\\d+)?$");
     const std::regex optionNameAndValue("^(\\w(\\w|\\d)*)\\s=\\s(.*)$");
-    const std::regex optionName("^[a-zA-Z](\\w|\\d)*$");
+    //const std::regex optionName("^[a-zA-Z](\\w|\\d)*$");
+    const std::regex optionName("^(_|[a-zA-Z])(\\w|\\d)*$");
     const std::regex boolValue("^(false|true)$");
 }
 

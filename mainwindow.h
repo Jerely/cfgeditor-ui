@@ -69,7 +69,7 @@ private:
     void customSetup();
     Option& currentOption();
     Config& currentConfig();
-    void openProjDir(const std::string&);
+    void openProjDir(const std::string&, bool reopen = false);
     void updateCurItem();
     void onTextChanged(const QPlainTextEdit*, std::string&);
     void updateInfo();

@@ -23,6 +23,7 @@ namespace fs = experimental::filesystem;
     const QSignalBlocker blocker10(ui->commentTextBox)
 
 const int MAX_STR_LEN = 30000;
+const string APP_NAME = "CFGEditor";
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -53,6 +54,9 @@ void MainWindow::on_nameLineEdit_editingFinished()
         return;
     }
     string newName = ui->nameLineEdit->text().toUtf8().constData();
+    if(currentOption().name == newName) {
+        return;
+    }
     if(!regex_match(newName, Regex::optionName))
     {
         ui->statusbar->showMessage("Некорректное имя опции.");
@@ -97,29 +101,44 @@ Config &MainWindow::currentConfig()
     return *configs[static_cast<uint64_t>(ui->tabsWidget->currentIndex())];
 }
 
-void MainWindow::openProjDir(const string &projDir)
+void MainWindow::openProjDir(const string &projDir, bool reopen)
 {
     static string oldProjDir = "";
     deleteAllBackups();
-    if(projDir == "" || oldProjDir == projDir) {
+    if((projDir == "" || oldProjDir == projDir) && !reopen) {
         return;
     }
+    oldProjDir = projDir;
     bool projOpenedSuccessfully = true;
     configs.clear();
     try {
         for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
-            const auto& fullPath = entry.path().u8string();
-            if (fullPath.substr(fullPath.find_last_of(".") + 1) == "cfg")
-            {
+            const string& fullPath = entry.path().u8string();
+            string path, filename;
+            extractPath(fullPath, path, filename);
+            auto config = make_unique<Config>(fullPath, logger);
+            bool parsed = false;
+            if (fullPath.substr(fullPath.find_last_of(".") + 1) == "cfg") {
                 if(fs::exists(fullPath + ".backup")) {
-                    //QMessageBox::StandardButton resBtn = QMessageBox::question( this, APP_NAME,
-                    //                                                                tr("Are you sure?\n"),
-                    //                                                                QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes,
-                    //                                                                QMessageBox::Yes);
-
+                    QMessageBox::StandardButton resBtn = QMessageBox::question( this, APP_NAME.c_str(),
+                                                                                    tr("Файл ") +
+                                                                                    filename.c_str() +
+                                                                                    " имеет резервную копию. Загрузить ее вместо оригинала?",
+                                                                                    QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes,
+                                                                                    QMessageBox::Yes);
+                    if(resBtn == QMessageBox::Yes) {
+                        parsed = config->parseConfig(fullPath + ".backup");
+                    }
+                    if(resBtn == QMessageBox::No) {
+                        parsed = config->parseConfig();
+                    }
+                    if(resBtn == QMessageBox::Cancel) {
+                        continue;
+                    }
                 }
-                auto config = make_unique<Config>(fullPath, logger);
-                const bool parsed = config->parseConfig();
+                else {
+                    parsed = config->parseConfig();
+                }
                 if(config->parseError) {
                     projOpenedSuccessfully = false;
                     string path, filename;
@@ -149,7 +168,6 @@ void MainWindow::openProjDir(const string &projDir)
     if(projOpenedSuccessfully) {
         ui->statusbar->showMessage("Проект успешно открыт.");
     }
-    oldProjDir = projDir;
 }
 
 void MainWindow::updateCurItem()
@@ -297,7 +315,9 @@ void MainWindow::saveConfig(uint64_t configIndex)
             ui->optionsListWidget->item(static_cast<int>(i))->setText(config.options[i]->toString().c_str());
         }
     }
-    ui->statusbar->showMessage(tr("Файл ") + config.filename.c_str() + " сохранен.");
+    string filename, path;
+    extractPath(config.filename.c_str(), path, filename);
+    ui->statusbar->showMessage(tr("Файл ") + filename.c_str() + " сохранен.");
     showThatConfigAltered(configIndex, false);
 }
 
@@ -360,11 +380,13 @@ void MainWindow::on_openPushButton_clicked()
 void MainWindow::onValueSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
-    if(currentRow < 0)
-    {
+    if(currentRow < 0) {
         return;
     }
     int64_t newValue = ui->valueSpinBox->value();
+    if(newValue == get<int64_t>(currentOption().value)) {
+        return;
+    }
     if(holds_alternative<int64_t>(currentOption().min) && newValue < get<int64_t>(currentOption().min))
     {
         ui->statusbar->showMessage("Значение типа int меньше указанного мин. значения.");
@@ -385,11 +407,14 @@ void MainWindow::onValueSpinBoxEditingFinished()
 void MainWindow::onMinSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
-    if(currentRow < 0)
-    {
+    if(currentRow < 0) {
         return;
     }
     int64_t newMin = ui->minSpinBox->value();
+    if(holds_alternative<int64_t>(currentOption().min) &&
+       newMin == get<int64_t>(currentOption().min)) {
+        return;
+    }
     if(newMin > get<int64_t>(currentOption().value))
     {
         ui->statusbar->showMessage("Мин. значение не может превышать значения опции.");
@@ -402,17 +427,21 @@ void MainWindow::onMinSpinBoxEditingFinished()
         return;
     }
     currentOption().min = newMin;
+    updateCurItem();
     saveBackup(currentConfig());
 }
 
 void MainWindow::onMaxSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
-    if(currentRow < 0)
-    {
+    if(currentRow < 0) {
         return;
     }
     int64_t newMax = ui->maxSpinBox->value();
+    if(holds_alternative<int64_t>(currentOption().max) &&
+       newMax == get<int64_t>(currentOption().max)) {
+        return;
+    }
     if(newMax < get<int64_t>(currentOption().value))
     {
         ui->statusbar->showMessage("Макс. значение не может быть меньше значения опции.");
@@ -425,17 +454,20 @@ void MainWindow::onMaxSpinBoxEditingFinished()
         return;
     }
     currentOption().max = newMax;
+    updateCurItem();
     saveBackup(currentConfig());
 }
 
 void MainWindow::onValueDoubleSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
-    if(currentRow < 0)
-    {
+    if(currentRow < 0) {
         return;
     }
     double newValue = ui->valueDoubleSpinBox->value();
+    if(newValue == get<double>(currentOption().value)) {
+        return;
+    }
     if(holds_alternative<double>(currentOption().min) &&  newValue < get<double>(currentOption().min))
     {
         ui->statusbar->showMessage("Значение типа double меньше указанного мин. значения.");
@@ -456,11 +488,14 @@ void MainWindow::onValueDoubleSpinBoxEditingFinished()
 void MainWindow::onMinDoubleSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
-    if(currentRow < 0)
-    {
+    if(currentRow < 0) {
         return;
     }
     double newMin = ui->minDoubleSpinBox->value();
+    if(holds_alternative<double>(currentOption().min) &&
+       newMin == get<double>(currentOption().min)) {
+        return;
+    }
     if(newMin > get<double>(currentOption().value))
     {
         ui->statusbar->showMessage("Мин. значение не может превышать значения опции.");
@@ -473,17 +508,21 @@ void MainWindow::onMinDoubleSpinBoxEditingFinished()
         return;
     }
     currentOption().min = newMin;
+    updateCurItem();
     saveBackup(currentConfig());
 }
 
 void MainWindow::onMaxDoubleSpinBoxEditingFinished()
 {
     int currentRow = ui->optionsListWidget->currentRow();
-    if(currentRow < 0)
-    {
+    if(currentRow < 0) {
         return;
     }
     double newMax = ui->maxDoubleSpinBox->value();
+    if(holds_alternative<double>(currentOption().max) &&
+       newMax == get<double>(currentOption().max)) {
+        return;
+    }
     if(newMax < get<double>(currentOption().value))
     {
         ui->statusbar->showMessage("Макс. значение не может быть меньше значения опции.");
@@ -496,12 +535,14 @@ void MainWindow::onMaxDoubleSpinBoxEditingFinished()
         return;
     }
     currentOption().max = newMax;
+    updateCurItem();
     saveBackup(currentConfig());
 }
 
 void MainWindow::on_commentTextBox_textChanged()
 {
     onTextChanged(ui->commentTextBox, currentOption().comment);
+    updateCurItem();
     saveBackup(currentConfig());
 }
 
@@ -578,10 +619,10 @@ void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
     else if(index == OptionType::DOUBLE) {
         switch(currentOption().type) {
         case BOOL:
-            currentOption().value = get<bool>(currentOption().value);
+            currentOption().value = static_cast<double>(get<bool>(currentOption().value));
             break;
         case INT:
-            currentOption().value = get<int64_t>(currentOption().value);
+            currentOption().value = static_cast<double>(get<int64_t>(currentOption().value));
             if(holds_alternative<int64_t>(currentOption().min)) {
                 currentOption().min = static_cast<double>(get<int64_t>(currentOption().min));
             }
@@ -641,18 +682,17 @@ void MainWindow::on_removeButton_clicked()
     ui->optionsListWidget->blockSignals(true);
     delete ui->optionsListWidget->takeItem(curRow);
     ui->optionsListWidget->blockSignals(false);
-    if(nextRow < 0) {
-        return;
-    }
     ui->optionsListWidget->setCurrentRow(nextRow);
-    updateInfo();
+    if(nextRow >= 0) {
+        updateInfo();
+    }
     showThatConfigAltered(ui->tabsWidget->currentIndex());
     saveBackup(currentConfig());
 }
 
 void MainWindow::on_updateButton_clicked()
 {
-    openProjDir(ui->projDirLineEdit->text().toUtf8().constData());
+    openProjDir(ui->projDirLineEdit->text().toUtf8().constData(), true);
 }
 
 void MainWindow::on_helpButton_clicked()
