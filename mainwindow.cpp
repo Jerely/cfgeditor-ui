@@ -7,9 +7,9 @@
 #include <QPushButton>
 #include <QHBoxLayout>
 #include <iostream>
-#include <experimental/filesystem>
+#include <filesystem>
 using namespace std;
-namespace fs = experimental::filesystem;
+namespace fs = filesystem;
 
 #define BLOCK_UNWANTED_SIGNALS() \
     const QSignalBlocker blocker1(ui->valueSpinBox); \
@@ -24,7 +24,7 @@ namespace fs = experimental::filesystem;
     const QSignalBlocker blocker10(ui->commentTextBox)
 
 const int MAX_STR_LEN = 30000;
-const string APP_NAME = "CFGEditor";
+const string APP_NAME = "CFGReader";
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -144,13 +144,13 @@ void MainWindow::openProjDir(const string &projDir, bool reopen)
     configs.clear();
     try {
         for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
-            const string& fullPath = entry.path().u8string();
-            string path, filename;
-            extractPath(fullPath, path, filename);
-            auto config = make_unique<Config>(fullPath, logger);
+            const string path = entry.path().u8string();
+            string filename, extension, backupPath;
+            extractFilename(path, filename, extension, backupPath);
+            auto config = make_unique<Config>(path, logger);
             bool parsed = false;
-            if (fullPath.substr(fullPath.find_last_of(".") + 1) == "cfg") {
-                if(fs::exists(fullPath + ".backup")) {
+            if (extension == "cfg" && filename.substr(0, 2) != ".#") {
+                if(fs::exists(backupPath)) {
                     QMessageBox::StandardButton resBtn = QMessageBox::question( this, APP_NAME.c_str(),
                                                                                     tr("Файл ") +
                                                                                     filename.c_str() +
@@ -158,11 +158,12 @@ void MainWindow::openProjDir(const string &projDir, bool reopen)
                                                                                     QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes,
                                                                                     QMessageBox::Yes);
                     if(resBtn == QMessageBox::Yes) {
-                        parsed = config->parseConfig(fullPath + ".backup");
+                        parsed = config->parseConfig(backupPath);
+                        config->isAltered = true;
                     }
                     if(resBtn == QMessageBox::No) {
                         parsed = config->parseConfig();
-                        fs::remove(fullPath + ".backup");
+                        fs::remove(backupPath);
                     }
                     if(resBtn == QMessageBox::Cancel) {
                         continue;
@@ -173,8 +174,6 @@ void MainWindow::openProjDir(const string &projDir, bool reopen)
                 }
                 if(config->parseError) {
                     projOpenedSuccessfully = false;
-                    string path, filename;
-                    extractPath(fullPath, path, filename);
                     ui->statusbar->showMessage(tr("Ошибка при чтении ") +
                                                filename.c_str() +
                                                ".");
@@ -184,7 +183,7 @@ void MainWindow::openProjDir(const string &projDir, bool reopen)
                 }
             }
         }
-    } catch (fs::v1::__cxx11::filesystem_error& e) {
+    } catch (fs::filesystem_error& e) {
         ui->statusbar->showMessage(e.what());
         return;
     }
@@ -192,7 +191,11 @@ void MainWindow::openProjDir(const string &projDir, bool reopen)
     ui->tabsWidget->clear();
     for(uint64_t i = 0; i < configs.size(); ++i)
     {
-        ui->tabsWidget->addTab(new QWidget, configs[i]->moduleName.c_str());
+        Config& config = *configs[i];
+        ui->tabsWidget->addTab(new QWidget, config.moduleName.c_str());
+        if(config.isAltered) {
+            showThatConfigAltered(i);
+        }
     }
     if(oldIndex < ui->tabsWidget->count() && oldIndex >= 0) {
         ui->tabsWidget->setCurrentIndex(oldIndex);
@@ -280,9 +283,9 @@ void MainWindow::updateInfo()
 
 void MainWindow::saveBackup(const Config &config) const
 {
-    //string filename, path;
-    //extractPath(config.filename, path, filename);
-    ofstream fout(config.filename + ".backup");
+    string filename, extension, backupPath;
+    extractFilename(config.path, filename, extension, backupPath);
+    ofstream fout(backupPath);
     fout << "### " << config.moduleName << endl;
     int i = 0;
     for(const auto& option : config.options) {
@@ -330,25 +333,25 @@ void MainWindow::saveBackup(const Config &config) const
 
 void MainWindow::saveConfig(uint64_t configIndex)
 {
-    //string path, filename;
-    //extractPath(config.filename, path, filename);
+    string filename, extension, backupPath;
     Config &config = *configs[configIndex];
-    if(!fs::exists(config.filename + ".backup")) {
+    extractFilename(config.path, filename, extension, backupPath);
+    if(!fs::exists(backupPath)) {
         return;
     }
-    if(fs::exists(config.filename)) {
-        fs::remove(config.filename);
+    if(fs::exists(config.path)) {
+        fs::remove(config.path);
     }
-    fs::copy(config.filename + ".backup", config.filename);
-    deleteBackup(config.filename);
+    fs::copy(backupPath, config.path);
+    if(fs::exists(backupPath)) {
+        fs::remove(backupPath);
+    }
     for(uint64_t i = 0; i < config.options.size(); ++i) {
         config.options[i]->state = UNALTERED;
         if(ui->tabsWidget->currentIndex() == static_cast<int>(configIndex)) {
             ui->optionsListWidget->item(static_cast<int>(i))->setText(config.options[i]->toString().c_str());
         }
     }
-    string filename, path;
-    extractPath(config.filename.c_str(), path, filename);
     ui->statusbar->showMessage(tr("Файл ") + filename.c_str() + " сохранен.");
     showThatConfigAltered(configIndex, false);
 }
@@ -366,13 +369,6 @@ void MainWindow::showThatConfigAltered(uint64_t configIndex, bool altered)
 void MainWindow::showThatConfigAltered(int configIndex, bool altered)
 {
     showThatConfigAltered(static_cast<uint64_t>(configIndex), altered);
-}
-
-void MainWindow::extractPath(const string &pathAndFilename, string &path, string &filename) const
-{
-    auto found = pathAndFilename.find_last_of("/\\");
-    path = pathAndFilename.substr(0, found);
-    filename = pathAndFilename.substr(found+1);
 }
 
 void MainWindow::on_tabsWidget_currentChanged(int index)
@@ -616,7 +612,7 @@ void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
         case INT:
             break;
         case STRING:
-            currentOption().value = 0ll;
+            currentOption().value = 0l;
             break;
         case DOUBLE:
             currentOption().value = static_cast<int64_t>(get<double>(currentOption().value));
@@ -761,31 +757,18 @@ void MainWindow::closeEvent (QCloseEvent *event)
 
 void MainWindow::deleteAllBackups()
 {
-    //if(projDir == "") {
-    //    return;
-    //}
-    //try {
-    //    for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
-    //       const auto& pathAndFilename = entry.path().u8string();
-    //       string path, filename;
-    //       extractPath(pathAndFilename, path, filename);
-    //       auto lastDot = filename.find_last_of(".");
-    //       string extension = filename.substr(lastDot+1);
-    //       if(extension == "backup") {
-    //           fs::remove(pathAndFilename);
-    //       }
-    //   }
-    //} catch (fs::v1::__cxx11::filesystem_error &e) {
-    //    ui->statusbar->showMessage(e.what());
-    //}
     for(const auto& config : configs) {
-        deleteBackup(config->filename);
+        string filename, extension, backupPath;
+        extractFilename(config->path, filename, extension, backupPath);
+        if(fs::exists(backupPath)) {
+            fs::remove(backupPath);
+        }
     }
 }
 
-void MainWindow::deleteBackup(const string &cfgPathAndFilename)
+void MainWindow::extractFilename(const std::string& path, std::string& filename, std::string& extension, std::string& backupPath) const
 {
-    try {
-        fs::remove(cfgPathAndFilename + ".backup");
-    } catch(fs::v1::__cxx11::filesystem_error &) {}
+    filename = path.substr(path.find_last_of("\\/")+1);
+    extension = filename.substr(filename.find_last_of(".")+1);
+    backupPath = path.substr(0, path.find_last_of("/\\")) + "/.#" + filename;
 }

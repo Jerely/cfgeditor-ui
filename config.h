@@ -35,7 +35,8 @@ class Config
     void parseNameAndValue(const std::string&, OptionType, const OptionMinMax&, const OptionMinMax&, std::string&, OptionValue&);
     inline void prepareMessage(const std::string&);
 public:
-    std::string filename;
+    bool isAltered;
+    std::string path;
     std::string moduleName;
     std::deque<std::unique_ptr<Option>> options;
     bool parseError;

@@ -85,9 +85,8 @@ private:
     void saveConfig(uint64_t configIndex);
     void showThatConfigAltered(uint64_t configIndex, bool altered = true);
     void showThatConfigAltered(int configIndex, bool altered = true);
-    void extractPath(const std::string&, std::string&, std::string&) const;
     void closeEvent (QCloseEvent *event);
     void deleteAllBackups();
-    void deleteBackup(const std::string&);
+    void extractFilename(const std::string&, std::string&, std::string&, std::string&) const;
 };
 #endif // MAINWINDOW_H

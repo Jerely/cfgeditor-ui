@@ -8,7 +8,8 @@ using namespace std;
 Config::Config(string filename, Logger& logger)
     : logger(logger)
     , lineNo(0)
-    , filename(filename)
+    , isAltered(false)
+    , path(filename)
     , parseError(false)
 {}
 
@@ -16,7 +17,7 @@ Config::~Config() {}
 
 bool Config::parseConfig()
 {
-    return parseConfig(filename);
+    return parseConfig(path);
 }
 
 bool Config::parseConfig(const string &filename)
@@ -37,6 +38,9 @@ bool Config::parseConfig(const string &filename)
 istream &Config::nextLine(string &outl)
 {
     istream& i = getline(*fin, outl);
+    if(outl[outl.length()-1] == '\r') {
+        outl.erase(outl.length()-1);
+    }
     if(i) {
         lineNo++;
     }
@@ -147,7 +151,7 @@ void Config::parseMinAndMax(const string& rawMinAndMax,
         if(optionType == INT)
         {
             try {
-                min = stoll(rawMin);
+                min = stol(rawMin);
             } catch (out_of_range&) {
                 parseError = true; throw BadOptionError("указанное минимальное значение не входит в допустимый диапазон");
             }
@@ -177,7 +181,7 @@ void Config::parseMinAndMax(const string& rawMinAndMax,
         }
         if(optionType == INT) {
             try {
-                max = stoll(rawMax);
+                max = stol(rawMax);
             } catch (out_of_range&) {
                 parseError = true; throw BadOptionError("указанное максимальное значение не входит в допустимый диапазон");
             }
@@ -222,7 +226,7 @@ void Config::parseNameAndValue(const string& rawNameAndValue,
             parseError = true; throw BadOptionError("ожидалось значение типа int");
         }
         try {
-            value = stoll(rawValue);
+            value = stol(rawValue);
         } catch (out_of_range&) {
             parseError = true; throw BadOptionError("указанное значение не входит в допустимый диапазон");
         }
@@ -269,7 +273,7 @@ void Config::parseNameAndValue(const string& rawNameAndValue,
 void Config::prepareMessage(const string & reason)
 {
     logger.log(string("Синтаксическая ошибка, файл ") +
-               filename +
+               path +
                ", строка " +
                to_string(lineNo) +
                ": " +
