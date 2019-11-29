@@ -29,7 +29,7 @@ const string APP_NAME = "CFGReader";
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , logger("log.txt")
+    , logger(nullptr)
 {
     ui->setupUi(this);
     customSetup();
@@ -89,6 +89,11 @@ void MainWindow::projDirLineEditSetFocus()
     ui->projDirLineEdit->setFocus();
 }
 
+void MainWindow::commentSetFocus()
+{
+    ui->commentTextBox->setFocus();
+}
+
 void MainWindow::customSetup()
 {
     const int64_t int64min = numeric_limits<int64_t>::min();
@@ -120,6 +125,7 @@ void MainWindow::customSetup()
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_L), this, SLOT(optionsListSetFocus()));
     new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_C), this, SLOT(comboBoxSetFocus()));
     new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_O), this, SLOT(projDirLineEditSetFocus()));
+    new QShortcut(QKeySequence(Qt::ALT + Qt::SHIFT + Qt::Key_O), this, SLOT(commentSetFocus()));
 }
 
 Option &MainWindow::currentOption()
@@ -138,16 +144,21 @@ void MainWindow::openProjDir(const string &projDir, bool reopen)
     if((projDir == "" || oldProjDir == projDir) && !reopen) {
         return;
     }
+    if(!fs::exists(projDir)) {
+        ui->statusbar->showMessage("Такой директории не существует.");
+        return;
+    }
     oldProjDir = projDir;
     deleteAllBackups();
     bool projOpenedSuccessfully = true;
     configs.clear();
+    logger.reset(new Logger(oldProjDir + "/cfgreader.log"));
     try {
         for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
             const string path = entry.path().u8string();
             string filename, extension, backupPath;
             extractFilename(path, filename, extension, backupPath);
-            auto config = make_unique<Config>(path, logger);
+            auto config = make_unique<Config>(path, *logger);
             bool parsed = false;
             if (extension == "cfg" && filename.substr(0, 2) != ".#") {
                 if(fs::exists(backupPath)) {

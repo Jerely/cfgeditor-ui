@@ -70,9 +70,11 @@ private slots:
 
     void projDirLineEditSetFocus();
 
+    void commentSetFocus();
+
 private:
     Ui::MainWindow *ui;
-    Logger logger;
+    std::unique_ptr<Logger> logger;
     std::vector<std::unique_ptr<Config>> configs;
     void customSetup();
     Option& currentOption();

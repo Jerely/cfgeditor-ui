@@ -168,7 +168,7 @@
             </font>
            </property>
            <property name="text">
-            <string>*Тип:</string>
+            <string>Тип:</string>
            </property>
           </widget>
          </item>
@@ -218,7 +218,7 @@
             </font>
            </property>
            <property name="text">
-            <string>*Имя:</string>
+            <string>Имя:</string>
            </property>
           </widget>
          </item>
@@ -244,7 +244,7 @@
           </font>
          </property>
          <property name="text">
-          <string>*Значение:</string>
+          <string>Значение:</string>
          </property>
         </widget>
        </item>
@@ -279,7 +279,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>381</width>
+             <width>371</width>
              <height>101</height>
             </rect>
            </property>
@@ -474,7 +474,7 @@
           </font>
          </property>
          <property name="text">
-          <string>*Комментарий:</string>
+          <string>Комментарий:</string>
          </property>
         </widget>
        </item>
