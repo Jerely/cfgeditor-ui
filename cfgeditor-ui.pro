@@ -19,6 +19,8 @@ SOURCES += \
     badsyntaxerror.cpp \
     config.cpp \
     configtester.cpp \
+    help.cpp \
+    helpwindow.cpp \
     linecounter.cpp \
     logger.cpp \
     main.cpp \
@@ -30,6 +32,8 @@ HEADERS += \
     badsyntaxerror.h \
     config.h \
     configtester.h \
+    help.h \
+    helpwindow.h \
     linecounter.h \
     logger.h \
     mainwindow.h \
@@ -37,6 +41,8 @@ HEADERS += \
     qtlonglongspinbox.h
 
 FORMS += \
+    help.ui \
+    helpwindow.ui \
     mainwindow.ui
 
 LIBS += -lstdc++fs

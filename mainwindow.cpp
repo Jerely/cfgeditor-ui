@@ -8,6 +8,7 @@
 #include <QHBoxLayout>
 #include <iostream>
 #include <filesystem>
+#include "helpwindow.h"
 using namespace std;
 namespace fs = filesystem;
 
@@ -125,7 +126,7 @@ void MainWindow::customSetup()
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_L), this, SLOT(optionsListSetFocus()));
     new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_C), this, SLOT(comboBoxSetFocus()));
     new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_O), this, SLOT(projDirLineEditSetFocus()));
-    new QShortcut(QKeySequence(Qt::ALT + Qt::SHIFT + Qt::Key_O), this, SLOT(commentSetFocus()));
+    new QShortcut(QKeySequence(Qt::ALT + Qt::SHIFT + Qt::Key_C), this, SLOT(commentSetFocus()));
 }
 
 Option &MainWindow::currentOption()
@@ -738,9 +739,8 @@ void MainWindow::on_updateButton_clicked()
 
 void MainWindow::on_helpButton_clicked()
 {
-    QMessageBox mb;
-    mb.setText("Справка.");
-    mb.exec();
+    HelpWindow helpWindow;
+    helpWindow.exec();
 }
 
 void MainWindow::on_saveAllButton_clicked()
