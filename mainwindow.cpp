@@ -30,7 +30,7 @@ const string APP_NAME = "CFGReader";
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , logger(nullptr)
+    , logger(new Logger("/tmp/cfgreader.cfg"))
 {
     ui->setupUi(this);
     customSetup();
@@ -114,19 +114,19 @@ void MainWindow::customSetup()
     connect(ui->valueTextEdit, SIGNAL(textChanged()), this, SLOT(onValueTextEditTextChanged()));
     connect(ui->valueCheckBox, SIGNAL(stateChanged(int)), this, SLOT(onValueCheckBoxStateChanged(int)));
     connect(ui->projDirLineEdit, SIGNAL(editingFinished()), this, SLOT(onProjDirLineEditEditingFinished()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_U), this, SLOT(on_updateButton_clicked()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_A), this, SLOT(on_addButton_clicked()));
+    new QShortcut(QKeySequence(Qt::Key_F5), this, SLOT(on_updateButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_W), this, SLOT(on_addButton_clicked()));
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_R), this, SLOT(on_removeButton_clicked()));
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_S), this, SLOT(on_saveButton_clicked()));
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_O), this, SLOT(on_openPushButton_clicked()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_H), this, SLOT(on_helpButton_clicked()));
+    new QShortcut(QKeySequence(Qt::Key_F1), this, SLOT(on_helpButton_clicked()));
     new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_S), this, SLOT(on_saveAllButton_clicked()));
 
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_T), this, SLOT(tabsWidgetSetFocus()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_L), this, SLOT(optionsListSetFocus()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_C), this, SLOT(comboBoxSetFocus()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_O), this, SLOT(projDirLineEditSetFocus()));
-    new QShortcut(QKeySequence(Qt::ALT + Qt::SHIFT + Qt::Key_C), this, SLOT(commentSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_QuoteLeft), this, SLOT(projDirLineEditSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_1), this, SLOT(tabsWidgetSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_2), this, SLOT(optionsListSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_3), this, SLOT(comboBoxSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_4), this, SLOT(commentSetFocus()));
 }
 
 Option &MainWindow::currentOption()
@@ -153,7 +153,6 @@ void MainWindow::openProjDir(const string &projDir, bool reopen)
     deleteAllBackups();
     bool projOpenedSuccessfully = true;
     configs.clear();
-    logger.reset(new Logger(oldProjDir + "/cfgreader.log"));
     try {
         for (const auto& entry : fs::recursive_directory_iterator(projDir)) {
             const string path = entry.path().u8string();

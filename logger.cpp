@@ -1,26 +1,29 @@
 #include "logger.h"
+#include <fstream>
+#include <filesystem>
 using namespace std;
+namespace fs = filesystem;
 
 Logger::Logger(string fileName)
     : fileName(fileName),
-      fout(fileName),
       isTesting(false)
 {}
 
-Logger::~Logger()
-{
-    fout.close();
-}
-
 void Logger::log(const string & msg)
 {
-    if(isTesting)
-    {
+    ofstream fout;
+    if (fs::exists(fileName)) {
+        fout.open(fileName, ios_base::app);
+    }
+    else {
+        fout.open(fileName);
+    }
+    if(isTesting) {
         outputStr.append(msg);
     }
-    else
-    {
+    else {
         fout << msg;
     }
+    fout.close();
 }
 
