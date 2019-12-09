@@ -76,7 +76,6 @@ private:
     Ui::MainWindow *ui;
     std::unique_ptr<Logger> logger;
     std::vector<std::unique_ptr<Config>> configs;
-    void customSetup();
     Option& currentOption();
     Config& currentConfig();
     void openProjDir(const std::string&, bool reopen = false);

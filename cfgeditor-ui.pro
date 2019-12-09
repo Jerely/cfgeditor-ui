@@ -18,10 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     badsyntaxerror.cpp \
     config.cpp \
-    configtester.cpp \
-    help.cpp \
     helpwindow.cpp \
-    linecounter.cpp \
     logger.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -31,10 +28,7 @@ SOURCES += \
 HEADERS += \
     badsyntaxerror.h \
     config.h \
-    configtester.h \
-    help.h \
     helpwindow.h \
-    linecounter.h \
     logger.h \
     mainwindow.h \
     option.h \

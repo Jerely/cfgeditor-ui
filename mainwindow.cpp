@@ -8,6 +8,7 @@
 #include <QHBoxLayout>
 #include <iostream>
 #include <filesystem>
+#include <fstream>
 #include "helpwindow.h"
 using namespace std;
 namespace fs = filesystem;
@@ -30,10 +31,39 @@ const string APP_NAME = "CFGReader";
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , logger(new Logger("/tmp/cfgreader.cfg"))
+    , logger(new Logger("/tmp/cfgreader.log"))
 {
     ui->setupUi(this);
-    customSetup();
+    const int64_t int64min = numeric_limits<int64_t>::min();
+    const int64_t int64max = numeric_limits<int64_t>::max();
+    ui->valueSpinBox->setMinimum(int64min);
+    ui->valueSpinBox->setMaximum(int64max);
+    ui->minSpinBox->setMinimum(int64min);
+    ui->minSpinBox->setMaximum(int64max);
+    ui->maxSpinBox->setMinimum(int64min);
+    ui->maxSpinBox->setMaximum(int64max);
+    connect(ui->valueSpinBox, SIGNAL(editingFinished()), this, SLOT(onValueSpinBoxEditingFinished()));
+    connect(ui->minSpinBox, SIGNAL(editingFinished()), this, SLOT(onMinSpinBoxEditingFinished()));
+    connect(ui->maxSpinBox, SIGNAL(editingFinished()), this, SLOT(onMaxSpinBoxEditingFinished()));
+    connect(ui->valueDoubleSpinBox, SIGNAL(editingFinished()), this, SLOT(onValueDoubleSpinBoxEditingFinished()));
+    connect(ui->minDoubleSpinBox, SIGNAL(editingFinished()), this, SLOT(onMinDoubleSpinBoxEditingFinished()));
+    connect(ui->maxDoubleSpinBox, SIGNAL(editingFinished()), this, SLOT(onMaxDoubleSpinBoxEditingFinished()));
+    connect(ui->valueTextEdit, SIGNAL(textChanged()), this, SLOT(onValueTextEditTextChanged()));
+    connect(ui->valueCheckBox, SIGNAL(stateChanged(int)), this, SLOT(onValueCheckBoxStateChanged(int)));
+    connect(ui->projDirLineEdit, SIGNAL(editingFinished()), this, SLOT(onProjDirLineEditEditingFinished()));
+    new QShortcut(QKeySequence(Qt::Key_F5), this, SLOT(on_updateButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_W), this, SLOT(on_addButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_R), this, SLOT(on_removeButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_S), this, SLOT(on_saveButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_O), this, SLOT(on_openPushButton_clicked()));
+    new QShortcut(QKeySequence(Qt::Key_F1), this, SLOT(on_helpButton_clicked()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_S), this, SLOT(on_saveAllButton_clicked()));
+
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_QuoteLeft), this, SLOT(projDirLineEditSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_1), this, SLOT(tabsWidgetSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_2), this, SLOT(optionsListSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_3), this, SLOT(comboBoxSetFocus()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_4), this, SLOT(commentSetFocus()));
 }
 
 MainWindow::~MainWindow()
@@ -93,40 +123,6 @@ void MainWindow::projDirLineEditSetFocus()
 void MainWindow::commentSetFocus()
 {
     ui->commentTextBox->setFocus();
-}
-
-void MainWindow::customSetup()
-{
-    const int64_t int64min = numeric_limits<int64_t>::min();
-    const int64_t int64max = numeric_limits<int64_t>::max();
-    ui->valueSpinBox->setMinimum(int64min);
-    ui->valueSpinBox->setMaximum(int64max);
-    ui->minSpinBox->setMinimum(int64min);
-    ui->minSpinBox->setMaximum(int64max);
-    ui->maxSpinBox->setMinimum(int64min);
-    ui->maxSpinBox->setMaximum(int64max);
-    connect(ui->valueSpinBox, SIGNAL(editingFinished()), this, SLOT(onValueSpinBoxEditingFinished()));
-    connect(ui->minSpinBox, SIGNAL(editingFinished()), this, SLOT(onMinSpinBoxEditingFinished()));
-    connect(ui->maxSpinBox, SIGNAL(editingFinished()), this, SLOT(onMaxSpinBoxEditingFinished()));
-    connect(ui->valueDoubleSpinBox, SIGNAL(editingFinished()), this, SLOT(onValueDoubleSpinBoxEditingFinished()));
-    connect(ui->minDoubleSpinBox, SIGNAL(editingFinished()), this, SLOT(onMinDoubleSpinBoxEditingFinished()));
-    connect(ui->maxDoubleSpinBox, SIGNAL(editingFinished()), this, SLOT(onMaxDoubleSpinBoxEditingFinished()));
-    connect(ui->valueTextEdit, SIGNAL(textChanged()), this, SLOT(onValueTextEditTextChanged()));
-    connect(ui->valueCheckBox, SIGNAL(stateChanged(int)), this, SLOT(onValueCheckBoxStateChanged(int)));
-    connect(ui->projDirLineEdit, SIGNAL(editingFinished()), this, SLOT(onProjDirLineEditEditingFinished()));
-    new QShortcut(QKeySequence(Qt::Key_F5), this, SLOT(on_updateButton_clicked()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_W), this, SLOT(on_addButton_clicked()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_R), this, SLOT(on_removeButton_clicked()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_S), this, SLOT(on_saveButton_clicked()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_O), this, SLOT(on_openPushButton_clicked()));
-    new QShortcut(QKeySequence(Qt::Key_F1), this, SLOT(on_helpButton_clicked()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_S), this, SLOT(on_saveAllButton_clicked()));
-
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_QuoteLeft), this, SLOT(projDirLineEditSetFocus()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_1), this, SLOT(tabsWidgetSetFocus()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_2), this, SLOT(optionsListSetFocus()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_3), this, SLOT(comboBoxSetFocus()));
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_4), this, SLOT(commentSetFocus()));
 }
 
 Option &MainWindow::currentOption()

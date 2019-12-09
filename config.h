@@ -1,6 +1,5 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-#include "linecounter.h"
 #include "option.h"
 #include <deque>
 #include <memory>

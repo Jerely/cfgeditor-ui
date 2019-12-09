@@ -1,6 +1,7 @@
 #include "config.h"
 #include <regex>
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include "badsyntaxerror.h"
 using namespace std;

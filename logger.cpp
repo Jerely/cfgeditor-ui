@@ -5,8 +5,7 @@ using namespace std;
 namespace fs = filesystem;
 
 Logger::Logger(string fileName)
-    : fileName(fileName),
-      isTesting(false)
+    : fileName(fileName)
 {}
 
 void Logger::log(const string & msg)
@@ -18,12 +17,7 @@ void Logger::log(const string & msg)
     else {
         fout.open(fileName);
     }
-    if(isTesting) {
-        outputStr.append(msg);
-    }
-    else {
-        fout << msg;
-    }
+    fout << msg;
     fout.close();
 }
 
