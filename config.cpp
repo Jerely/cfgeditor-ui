@@ -1,3 +1,4 @@
+#include <QString>
 #include "config.h"
 #include <regex>
 #include <iostream>
@@ -162,7 +163,7 @@ void Config::parseMinAndMax(const string& rawMinAndMax,
             if(rawMin.length() > 300) {
                 parseError = true; throw BadOptionError("длина мин. значения типа double превышает 300 символов");
             }
-            min = stod(rawMin);
+            min = QString(rawMin.c_str()).toDouble();
         }
     }
     string rawMax = match[2];
@@ -191,7 +192,7 @@ void Config::parseMinAndMax(const string& rawMinAndMax,
             if(rawMax.length() > 300) {
                 parseError = true; throw BadOptionError("длина макс. значения типа double превышает 300 символов");
             }
-            max = stod(rawMax);
+            max = QString(rawMax.c_str()).toDouble();
         }
     }
 }
@@ -246,7 +247,7 @@ void Config::parseNameAndValue(const string& rawNameAndValue,
         if(rawValue.length() > 300) {
             parseError = true; throw BadOptionError("длина значения опции типа double превышает 300 символов");
         }
-        value = stod(rawValue);
+        value = QString(rawValue.c_str()).toDouble();
         if(holds_alternative<double>(min) && get<double>(value) < get<double>(min)) {
             parseError = true; throw BadOptionError("значение не соответствует указанному диапазону");
         }

@@ -3,8 +3,7 @@
 #include <QEvent>
 #include <QKeyEvent>
 QtLongLongSpinBox::QtLongLongSpinBox(QWidget *parent) :
-    QAbstractSpinBox(parent),
-    m_prefix("-")
+    QAbstractSpinBox(parent)
 {
     m_minimum = std::numeric_limits<qlonglong>::min();
     m_maximum = std::numeric_limits<qlonglong>::max();
