@@ -1,57 +1,64 @@
-#include "qtlonglongspinbox.h"
+#include "defaultdoubleprecision.h"
+#include "doublespinbox.h"
 #include <QtWidgets/QLineEdit>
 #include <QEvent>
 #include <QKeyEvent>
-QtLongLongSpinBox::QtLongLongSpinBox(QWidget *parent) :
+#include <regex>
+using namespace std;
+
+static const regex doubleValue("^[+-]?((\\d+)|(\\d+\\.\\d*)|(\\d*\\.\\d+))([Ee][+-]?\\d*)?$");
+
+static const int DOUBLE_MAX_LEN = 300;
+
+DoubleSpinBox::DoubleSpinBox(QWidget *parent) :
     QAbstractSpinBox(parent)
 {
-    m_minimum = std::numeric_limits<qlonglong>::min();
-    m_maximum = std::numeric_limits<qlonglong>::max();
+    m_minimum = std::numeric_limits<double>::lowest();
+    m_maximum = std::numeric_limits<double>::max();
     m_value = 0;
     m_singleStep = 1;
 
     setValue(m_value);
 }
 
-qlonglong QtLongLongSpinBox::value() const
+double DoubleSpinBox::value() const
 {
     return m_value;
 }
 
-void QtLongLongSpinBox::setValue(qlonglong expectedNewValue)
+void DoubleSpinBox::setValue(double expectedNewValue)
 {
-    const qlonglong newValue = qBound(m_minimum, expectedNewValue, m_maximum);
-    const QString newValueString = QString::number(newValue);
+    const QString newValueString = QString::number(expectedNewValue, 'g', DEFAULT_DOUBLE_PRECISION);
     lineEdit()->setText(newValueString);
-    if (m_value != newValue) {
-        m_value = newValue;
+    if (m_value != expectedNewValue) {
+        m_value = expectedNewValue;
 
-        emit valueChanged(newValue);
+        emit valueChanged(expectedNewValue);
         emit valueChanged(newValueString);
     }
 }
 
-QString QtLongLongSpinBox::cleanText() const
+QString DoubleSpinBox::cleanText() const
 {
-    return QString::number(m_value);
+    return QString::number(m_value, 'g', DEFAULT_DOUBLE_PRECISION);
 }
 
-qlonglong QtLongLongSpinBox::singleStep() const
+double DoubleSpinBox::singleStep() const
 {
     return m_singleStep;
 }
 
-void QtLongLongSpinBox::setSingleStep(qlonglong step)
+void DoubleSpinBox::setSingleStep(double step)
 {
     m_singleStep = step;
 }
 
-qlonglong QtLongLongSpinBox::minimum() const
+double DoubleSpinBox::minimum() const
 {
     return m_minimum;
 }
 
-void QtLongLongSpinBox::setMinimum(qlonglong min)
+void DoubleSpinBox::setMinimum(double min)
 {
     m_minimum = min;
     if (m_maximum < m_minimum) {
@@ -61,12 +68,12 @@ void QtLongLongSpinBox::setMinimum(qlonglong min)
     setValue(m_value);
 }
 
-qlonglong QtLongLongSpinBox::maximum() const
+double DoubleSpinBox::maximum() const
 {
     return m_maximum;
 }
 
-void QtLongLongSpinBox::setMaximum(qlonglong max)
+void DoubleSpinBox::setMaximum(double max)
 {
     m_maximum = max;
     if (m_maximum < m_minimum) {
@@ -76,7 +83,7 @@ void QtLongLongSpinBox::setMaximum(qlonglong max)
     setValue(m_value);
 }
 
-void QtLongLongSpinBox::setRange(qlonglong min, qlonglong max)
+void DoubleSpinBox::setRange(double min, double max)
 {
     if (min < max) {
         m_minimum = min;
@@ -90,7 +97,7 @@ void QtLongLongSpinBox::setRange(qlonglong min, qlonglong max)
     setValue(m_value);
 }
 
-void QtLongLongSpinBox::keyPressEvent(QKeyEvent *event)
+void DoubleSpinBox::keyPressEvent(QKeyEvent *event)
 {
     switch (event->key()) {
     case Qt::Key_Enter:
@@ -102,14 +109,14 @@ void QtLongLongSpinBox::keyPressEvent(QKeyEvent *event)
     QAbstractSpinBox::keyPressEvent(event);
 }
 
-void QtLongLongSpinBox::focusOutEvent(QFocusEvent *event)
+void DoubleSpinBox::focusOutEvent(QFocusEvent *event)
 {
     lineEditEditingFinalize();
 
     QAbstractSpinBox::focusOutEvent(event);
 }
 
-QAbstractSpinBox::StepEnabled QtLongLongSpinBox::stepEnabled() const
+QAbstractSpinBox::StepEnabled DoubleSpinBox::stepEnabled() const
 {
     if (isReadOnly()) {
         return nullptr;
@@ -126,17 +133,21 @@ QAbstractSpinBox::StepEnabled QtLongLongSpinBox::stepEnabled() const
     return se;
 }
 
-void QtLongLongSpinBox::stepBy(int steps)
+void DoubleSpinBox::stepBy(int steps)
 {
     if (isReadOnly()) {
         return;
     }
 
-    if (QString::number(m_value) != lineEdit()->text()) {
+    //if(!regex_match(lineEdit()->text().toUtf8().constData(), doubleWithoutExp)) {
+    //    return;
+    //}
+
+    if (QString::number(m_value, 'g', DEFAULT_DOUBLE_PRECISION) != lineEdit()->text()) {
         lineEditEditingFinalize();
     }
 
-    qlonglong newValue = m_value + (steps * m_singleStep);
+    double newValue = m_value + (steps * m_singleStep);
     if (wrapping()) {
         // emulating the behavior of QSpinBox
         if (newValue > m_maximum) {
@@ -156,50 +167,44 @@ void QtLongLongSpinBox::stepBy(int steps)
             }
         }
     }
-    else {
-        newValue = qBound(m_minimum, newValue, m_maximum);
-    }
 
     setValue(newValue);
     selectCleanText();
 }
 
-QValidator::State QtLongLongSpinBox::validate(QString &input, int &) const
+QValidator::State DoubleSpinBox::validate(QString &input, int &) const
 {
-    // first, we try to interpret as a number without prefixes
+    if(input.length() > DOUBLE_MAX_LEN) {
+        return QValidator::Invalid;
+    }
     bool ok;
-    const qlonglong value = input.toLongLong(&ok);
+    const double value = input.toDouble(&ok);
     if (input == "-"
         || input == "+"
         || input.isEmpty()
+        || regex_match(input.toUtf8().constData(), doubleValue)
         || (ok
             && value >= m_minimum
             && value <= m_maximum))
     {
         return QValidator::Acceptable;
     }
-
-    // otherwise not acceptable
     return QValidator::Invalid;
 }
 
-void QtLongLongSpinBox::lineEditEditingFinalize()
+void DoubleSpinBox::lineEditEditingFinalize()
 {
     const QString text = lineEdit()->text();
-
-    // first, we try to read as a number without prefixes
     bool ok;
-    qlonglong value = text.toLongLong(&ok);
+    double value = text.toDouble(&ok);
     if (ok) {
         setValue(value);
         return;
     }
-
-    // otherwise set old value
     setValue(m_value);
 }
 
-void QtLongLongSpinBox::selectCleanText()
+void DoubleSpinBox::selectCleanText()
 {
     lineEdit()->setSelection(0, lineEdit()->text().length());
 }

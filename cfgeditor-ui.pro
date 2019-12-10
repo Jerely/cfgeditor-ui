@@ -18,6 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     badsyntaxerror.cpp \
     config.cpp \
+    doublespinbox.cpp \
     helpwindow.cpp \
     logger.cpp \
     main.cpp \
@@ -28,6 +29,8 @@ SOURCES += \
 HEADERS += \
     badsyntaxerror.h \
     config.h \
+    defaultdoubleprecision.h \
+    doublespinbox.h \
     helpwindow.h \
     logger.h \
     mainwindow.h \

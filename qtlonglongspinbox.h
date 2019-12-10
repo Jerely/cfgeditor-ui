@@ -10,12 +10,6 @@ public:
 
     qlonglong value() const;
 
-    QString prefix() const;
-    void setPrefix(const QString &prefix);
-
-    QString suffix() const;
-    void setSuffix(const QString &suffix);
-
     QString cleanText() const;
 
     qlonglong singleStep() const;
@@ -48,8 +42,6 @@ private:
     void selectCleanText();
 
 private:
-    QString m_prefix;
-    QString m_suffix;
     qlonglong m_singleStep;
     qlonglong m_minimum;
     qlonglong m_maximum;

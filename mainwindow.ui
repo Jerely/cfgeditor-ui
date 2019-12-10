@@ -242,7 +242,7 @@
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>0</number>
+           <number>3</number>
           </property>
           <widget class="QWidget" name="page">
            <widget class="QCheckBox" name="valueCheckBox">
@@ -351,7 +351,7 @@
             <item row="0" column="0">
              <layout class="QVBoxLayout" name="verticalLayout_2">
               <item>
-               <widget class="QDoubleSpinBox" name="valueDoubleSpinBox">
+               <widget class="DoubleSpinBox" name="valueDoubleSpinBox">
                 <property name="font">
                  <font>
                   <pointsize>11</pointsize>
@@ -383,7 +383,7 @@
                  </widget>
                 </item>
                 <item row="0" column="1">
-                 <widget class="QDoubleSpinBox" name="minDoubleSpinBox">
+                 <widget class="DoubleSpinBox" name="minDoubleSpinBox">
                   <property name="font">
                    <font>
                     <pointsize>11</pointsize>
@@ -416,7 +416,7 @@
                  </widget>
                 </item>
                 <item row="1" column="1">
-                 <widget class="QDoubleSpinBox" name="maxDoubleSpinBox">
+                 <widget class="DoubleSpinBox" name="maxDoubleSpinBox">
                   <property name="font">
                    <font>
                     <pointsize>11</pointsize>
@@ -521,6 +521,11 @@
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>DoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>doublespinbox.h</header>
+  </customwidget>
   <customwidget>
    <class>QtLongLongSpinBox</class>
    <extends>QSpinBox</extends>

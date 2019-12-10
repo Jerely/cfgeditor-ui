@@ -1,3 +1,4 @@
+#include "defaultdoubleprecision.h"
 #include <QShortcut>
 #include <QMessageBox>
 #include <QFileDialog>
@@ -27,6 +28,12 @@ namespace fs = filesystem;
 
 const int MAX_STR_LEN = 30000;
 const string APP_NAME = "CFGReader";
+
+
+static int64_t iOldMin = numeric_limits<int64_t>::min();
+static int64_t iOldMax = numeric_limits<int64_t>::max();
+static double dOldMin = numeric_limits<double>::lowest();
+static double dOldMax = numeric_limits<double>::max();
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -251,32 +258,32 @@ void MainWindow::updateInfo()
         ui->stackedWidget->setCurrentIndex(OptionType::INT);
         ui->valueSpinBox->setValue(get<int64_t>(currentOption().value));
         if(holds_alternative<int64_t>(currentOption().min)) {
-            ui->minSpinBox->setValue(get<int64_t>(currentOption().min));
+            ui->minSpinBox->setValue(iOldMin = get<int64_t>(currentOption().min));
         }
         else {
-            ui->minSpinBox->setValue(numeric_limits<int64_t>::min());
+            ui->minSpinBox->setValue(iOldMin = numeric_limits<int64_t>::min());
         }
         if(holds_alternative<int64_t>(currentOption().max)) {
-            ui->maxSpinBox->setValue(get<int64_t>(currentOption().max));
+            ui->maxSpinBox->setValue(iOldMax = get<int64_t>(currentOption().max));
         }
         else {
-            ui->maxSpinBox->setValue(numeric_limits<int64_t>::max());
+            ui->maxSpinBox->setValue(iOldMax = numeric_limits<int64_t>::max());
         }
         break;
     case DOUBLE:
         ui->stackedWidget->setCurrentIndex(OptionType::DOUBLE);
         ui->valueDoubleSpinBox->setValue(get<double>(currentOption().value));
         if(holds_alternative<double>(currentOption().min)) {
-            ui->minDoubleSpinBox->setValue(get<double>(currentOption().min));
+            ui->minDoubleSpinBox->setValue(dOldMin = get<double>(currentOption().min));
         }
         else {
-            ui->minDoubleSpinBox->setValue(numeric_limits<double>::lowest());
+            ui->minDoubleSpinBox->setValue(dOldMin = numeric_limits<double>::lowest());
         }
         if(holds_alternative<double>(currentOption().max)) {
-            ui->maxDoubleSpinBox->setValue(get<double>(currentOption().max));
+            ui->maxDoubleSpinBox->setValue(dOldMax = get<double>(currentOption().max));
         }
         else {
-            ui->maxDoubleSpinBox->setValue(numeric_limits<double>::max());
+            ui->maxDoubleSpinBox->setValue(dOldMax = numeric_limits<double>::max());
         }
         break;
     case STRING:
@@ -446,22 +453,21 @@ void MainWindow::onMinSpinBoxEditingFinished()
         return;
     }
     int64_t newMin = ui->minSpinBox->value();
-    if(holds_alternative<int64_t>(currentOption().min) &&
-       newMin == get<int64_t>(currentOption().min)) {
+    if(newMin == iOldMin) {
         return;
     }
     if(newMin > get<int64_t>(currentOption().value))
     {
         ui->statusbar->showMessage("Мин. значение не может превышать значения опции.");
         if(holds_alternative<int64_t>(currentOption().min)) {
-            ui->minSpinBox->setValue(get<int64_t>(currentOption().min));
+            ui->minSpinBox->setValue(iOldMin = get<int64_t>(currentOption().min));
         }
         else {
-            ui->minSpinBox->setValue(numeric_limits<int64_t>::min());
+            ui->minSpinBox->setValue(iOldMin = numeric_limits<int64_t>::min());
         }
         return;
     }
-    currentOption().min = newMin;
+    currentOption().min = iOldMin = newMin;
     updateCurItem();
     saveBackup(currentConfig());
 }
@@ -473,22 +479,21 @@ void MainWindow::onMaxSpinBoxEditingFinished()
         return;
     }
     int64_t newMax = ui->maxSpinBox->value();
-    if(holds_alternative<int64_t>(currentOption().max) &&
-       newMax == get<int64_t>(currentOption().max)) {
+    if(newMax == iOldMax){
         return;
     }
     if(newMax < get<int64_t>(currentOption().value))
     {
         ui->statusbar->showMessage("Макс. значение не может быть меньше значения опции.");
         if(holds_alternative<int64_t>(currentOption().max)) {
-            ui->maxSpinBox->setValue(get<int64_t>(currentOption().max));
+            ui->maxSpinBox->setValue(iOldMax = get<int64_t>(currentOption().max));
         }
         else {
-           ui->maxSpinBox->setValue(numeric_limits<int64_t>::max());
+           ui->maxSpinBox->setValue(iOldMax = numeric_limits<int64_t>::max());
         }
         return;
     }
-    currentOption().max = newMax;
+    currentOption().max = iOldMax = newMax;
     updateCurItem();
     saveBackup(currentConfig());
 }
@@ -527,22 +532,21 @@ void MainWindow::onMinDoubleSpinBoxEditingFinished()
         return;
     }
     double newMin = ui->minDoubleSpinBox->value();
-    if(holds_alternative<double>(currentOption().min) &&
-       newMin == get<double>(currentOption().min)) {
+    if(dOldMin == newMin) {
         return;
     }
     if(newMin > get<double>(currentOption().value))
     {
         ui->statusbar->showMessage("Мин. значение не может превышать значения опции.");
         if(holds_alternative<double>(currentOption().min)) {
-            ui->minDoubleSpinBox->setValue(get<double>(currentOption().min));
+            ui->minDoubleSpinBox->setValue(dOldMin = get<double>(currentOption().min));
         }
         else {
-           ui->minDoubleSpinBox->setValue(numeric_limits<double>::lowest());
+           ui->minDoubleSpinBox->setValue(dOldMin = numeric_limits<double>::lowest());
         }
         return;
     }
-    currentOption().min = newMin;
+    currentOption().min = dOldMin = newMin;
     updateCurItem();
     saveBackup(currentConfig());
 }
@@ -554,22 +558,21 @@ void MainWindow::onMaxDoubleSpinBoxEditingFinished()
         return;
     }
     double newMax = ui->maxDoubleSpinBox->value();
-    if(holds_alternative<double>(currentOption().max) &&
-       newMax == get<double>(currentOption().max)) {
+    if(newMax == dOldMax) {
         return;
     }
     if(newMax < get<double>(currentOption().value))
     {
         ui->statusbar->showMessage("Макс. значение не может быть меньше значения опции.");
         if(holds_alternative<double>(currentOption().max)) {
-            ui->maxDoubleSpinBox->setValue(get<double>(currentOption().max));
+            ui->maxDoubleSpinBox->setValue(dOldMax = get<double>(currentOption().max));
         }
         else {
-            ui->maxDoubleSpinBox->setValue(numeric_limits<double>::max());
+            ui->maxDoubleSpinBox->setValue(dOldMax = numeric_limits<double>::max());
         }
         return;
     }
-    currentOption().max = newMax;
+    currentOption().max = dOldMax = newMax;
     updateCurItem();
     saveBackup(currentConfig());
 }
@@ -645,7 +648,7 @@ void MainWindow::on_optionTypeComboBox_currentIndexChanged(int index)
         case STRING:
             break;
         case DOUBLE:
-            currentOption().value = to_string(get<double>(currentOption().value));
+            currentOption().value = QString::number(get<double>(currentOption().value), 'g', DEFAULT_DOUBLE_PRECISION).constData();
             currentOption().min = monostate();
             currentOption().max = monostate();
             break;

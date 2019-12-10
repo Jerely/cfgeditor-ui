@@ -1,4 +1,6 @@
 #include "option.h"
+#include <QString>
+#include "defaultdoubleprecision.h"
 using namespace std;
 
 string Option::valueToString()
@@ -11,7 +13,7 @@ string Option::valueToString()
         }
         return "false";
     case DOUBLE:
-        return to_string(get<double>(value));
+        return QString::number(get<double>(value), 'g', DEFAULT_DOUBLE_PRECISION).toUtf8().constData();
     case INT:
         return to_string(get<int64_t>(value));
     case STRING:
